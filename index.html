@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Célula Procariota</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f4f4f4; color: #333; }
+    header { background: #0077b6; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    nav { display: none; flex-direction: column; background: #0077b6; }
+    nav a { color: white; padding: 1rem; text-decoration: none; border-top: 1px solid #005f86; }
+    nav a:hover { background: #005f86; }
+    .menu-btn { font-size: 1.5rem; cursor: pointer; }
+    @media(min-width: 768px) {
+      nav { display: flex !important; flex-direction: row; }
+      .menu-btn { display: none; }
+    }
+    .container { padding: 2rem; }
+    h1, h2 { color: #023e8a; margin-bottom: 1rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; }
+    .card { background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
+    img { max-width: 100%; height: auto; margin-top: 1rem; border-radius: 8px; }
+    .quiz { margin-top: 2rem; }
+    .quiz button { padding: 0.5rem 1rem; background: #0096c7; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    footer { background: #023e8a; color: white; text-align: center; padding: 1rem; margin-top: 3rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Célula Procariota</h1>
+    <i class="fas fa-bars menu-btn" onclick="toggleMenu()"></i>
+    <nav id="nav">
+      <a href="#intro">¿Qué es?</a>
+      <a href="#caracteristicas">Características</a>
+      <a href="#comparacion">Comparación</a>
+      <a href="#imagenes">Imágenes</a>
+      <a href="#quiz">Quiz</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <section id="intro">
+      <h2>¿Qué es una célula procariota?</h2>
+      <p>Las células procariotas son organismos unicelulares que no poseen núcleo definido. Su ADN flota libremente en el citoplasma. Son simples pero muy eficientes, y están presentes en bacterias y arqueas.</p>
+    </section>
+
+    <section id="caracteristicas">
+      <h2>Características principales</h2>
+      <ul>
+        <li>No tienen núcleo ni organelas membranosas</li>
+        <li>ADN circular libre en el citoplasma</li>
+        <li>Reproducción asexual (fisión binaria)</li>
+        <li>Pared celular rígida</li>
+        <li>Tamaño pequeño (1-10 μm)</li>
+      </ul>
+    </section>
+
+    <section id="comparacion">
+      <h2>Comparación: Procariota vs Eucariota</h2>
+      <table>
+        <tr><th>Característica</th><th>Procariota</th><th>Eucariota</th></tr>
+        <tr><td>Núcleo</td><td>No</td><td>Sí</td></tr>
+        <tr><td>ADN</td><td>Circular libre</td><td>Lineal en núcleo</td></tr>
+        <tr><td>Organelas</td><td>No</td><td>Sí</td></tr>
+        <tr><td>Tamaño</td><td>1-10 μm</td><td>10-100 μm</td></tr>
+      </table>
+    </section>
+
+    <section id="imagenes">
+      <h2>Imágenes</h2>
+      <img src="https://upload.wikimedia.org/wikipedia/commons/6/6e/Prokaryote_cell_diagram-es.svg" alt="Célula Procariota">
+    </section>
+
+    <section class="quiz" id="quiz">
+      <h2>Quiz</h2>
+      <p>¿Cuál de estas afirmaciones es correcta?</p>
+      <button onclick="checkAnswer(true)">Las células procariotas no tienen núcleo</button>
+      <button onclick="checkAnswer(false)">Tienen muchas organelas membranosas</button>
+      <p id="respuesta"></p>
+    </section>
+  </div>
+
+  <footer>
+    <p>© 2025 Proyecto Educativo | Hecho con ❤️ en Argentina</p>
+  </footer>
+
+  <script>
+    function toggleMenu() {
+      const nav = document.getElementById('nav');
+      nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
+    }
+    function checkAnswer(correct) {
+      const respuesta = document.getElementById('respuesta');
+      respuesta.textContent = correct ? '¡Correcto, capo!' : 'No, esa no va. Probá otra vez.';
+    }
+  </script>
+</body>
+</html>
