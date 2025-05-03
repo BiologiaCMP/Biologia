@@ -10,26 +10,30 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Rubik', sans-serif; background: #fff9f0; color: #333; }
-    header { background: #f77f00; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; }
-    nav { display: none; flex-direction: column; background: #f77f00; }
-    nav a { color: white; padding: 1rem; text-decoration: none; border-top: 1px solid #c06000; }
-    nav a:hover { background: #d76d00; }
+    body { font-family: 'Rubik', sans-serif; background: #fffaf3; color: #2b2d42; }
+    header { background: #2a9d8f; color: white; padding: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    nav { display: none; flex-direction: column; background: #2a9d8f; }
+    nav a { color: white; padding: 1rem; text-decoration: none; border-top: 1px solid #1e7c6c; }
+    nav a:hover { background: #1e7c6c; }
     .menu-btn { font-size: 1.5rem; cursor: pointer; }
     @media(min-width: 768px) {
       nav { display: flex !important; flex-direction: row; }
       .menu-btn { display: none; }
     }
     .container { padding: 2rem; max-width: 1000px; margin: auto; }
-    h1, h2 { color: #d62828; margin-bottom: 1rem; }
+    h1, h2 { color: #264653; margin-bottom: 1rem; }
     ul { margin-left: 1rem; list-style: circle; margin-bottom: 1rem; }
     table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: center; background: #fefae0; }
     img { max-width: 100%; height: auto; margin-top: 1rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     .quiz { margin-top: 2rem; }
-    .quiz button { padding: 0.5rem 1rem; background: #38b000; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 0.5rem; }
-    footer { background: #003049; color: white; text-align: center; padding: 1rem; margin-top: 3rem; }
-    .extra { margin-top: 2rem; background: #ffe5b4; padding: 1rem; border-radius: 8px; }
+    .quiz button { padding: 0.5rem 1rem; background: #e76f51; color: white; border: none; border-radius: 5px; cursor: pointer; margin-right: 0.5rem; transition: background 0.3s; }
+    .quiz button:hover { background: #d65b3f; }
+    footer { background: #264653; color: white; text-align: center; padding: 1rem; margin-top: 3rem; }
+    .extra, .tip, .historia, .uso { margin-top: 2rem; background: #f4f1de; padding: 1rem; border-radius: 8px; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+    .card { background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); transition: transform 0.2s; }
+    .card:hover { transform: translateY(-5px); }
   </style>
 </head>
 <body>
@@ -42,24 +46,26 @@
       <a href="#comparacion">Comparación</a>
       <a href="#imagenes">Imágenes</a>
       <a href="#quiz">Quiz</a>
-      <a href="#extra">Más info</a>
+      <a href="#extra">Curiosidades</a>
+      <a href="#historia">Historia</a>
+      <a href="#uso">¿Para qué sirve?</a>
     </nav>
   </header>
 
   <div class="container">
     <section id="intro">
       <h2>¿Qué es una célula procariota?</h2>
-      <p>Una célula procariota es como el modelo básico de célula, sin núcleo y sin complicaciones. Están presentes en bichitos como las bacterias. Aunque son simples, ¡no subestimes su poder!</p>
+      <p>Una célula procariota es el tipo más simple y antiguo de célula que existe. No tiene núcleo ni organelas, pero ¡ojo! eso no significa que sea menos eficiente. Están en todas partes: en tu boca, en tu panza y hasta en ambientes extremos.</p>
     </section>
 
     <section id="caracteristicas">
       <h2>Características principales</h2>
       <ul>
-        <li>Sin núcleo (¡todo está a la vista!)</li>
-        <li>ADN redondito y libre en el citoplasma</li>
-        <li>Reproducción rápida (tipo "copiar y pegar")</li>
-        <li>Fuerte como roca: tienen pared celular</li>
-        <li>Chiquitas pero cumplidoras (1-10 μm)</li>
+        <li>No tienen núcleo: el ADN flota libre por el citoplasma</li>
+        <li>Reproducción rápida por fisión binaria</li>
+        <li>Pared celular resistente</li>
+        <li>Tamaño microscópico (1-10 μm)</li>
+        <li>Alta capacidad de adaptación</li>
       </ul>
     </section>
 
@@ -71,6 +77,7 @@
         <tr><td>ADN</td><td>Circular</td><td>Lineal</td></tr>
         <tr><td>Organelas</td><td>No</td><td>Sí</td></tr>
         <tr><td>Tamaño</td><td>1-10 μm</td><td>10-100 μm</td></tr>
+        <tr><td>Ejemplos</td><td>Bacterias</td><td>Animales, plantas</td></tr>
       </table>
     </section>
 
@@ -88,13 +95,40 @@
     </section>
 
     <section class="extra" id="extra">
-      <h2>Dato curioso 💡</h2>
-      <p>Las procariotas fueron las primeras formas de vida en el planeta. ¡Están entre nosotres desde hace más de 3.500 millones de años!</p>
+      <h2>Curiosidades 💬</h2>
+      <ul>
+        <li>Las procariotas existen desde hace más de 3.500 millones de años</li>
+        <li>Son capaces de vivir en ambientes extremos como volcanes o el fondo del mar</li>
+        <li>¡Algunas son beneficiosas y viven dentro de nosotros ayudando a la digestión!</li>
+      </ul>
+    </section>
+
+    <section class="historia" id="historia">
+      <h2>Un poco de historia 🧬</h2>
+      <p>Las primeras células fueron procariotas. Se formaron en la sopa primordial de la Tierra temprana y dominaron el planeta por miles de millones de años antes de que aparecieran las células más complejas (eucariotas).</p>
+    </section>
+
+    <section class="uso" id="uso">
+      <h2>¿Para qué sirven las células procariotas?</h2>
+      <div class="card-grid">
+        <div class="card">
+          <h3>Industria alimentaria</h3>
+          <p>Se usan en la producción de yogur, queso y vinagre.</p>
+        </div>
+        <div class="card">
+          <h3>Medicina</h3>
+          <p>Algunas producen antibióticos y otras ayudan en la digestión.</p>
+        </div>
+        <div class="card">
+          <h3>Ecología</h3>
+          <p>Reciclan nutrientes, fijan nitrógeno y descomponen materia.</p>
+        </div>
+      </div>
     </section>
   </div>
 
   <footer>
-    <p>© 2025 Proyecto Educativo | Hecho con buena onda en Argentina 🇦🇷</p>
+    <p>© 2025 Proyecto Educativo | Con toda la onda desde Argentina 🇦🇷</p>
   </footer>
 
   <script>
