@@ -1,0 +1,74 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Metabolismo Celular</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <header>
+    <h1>Metabolismo Celular</h1>
+    <nav>
+      <ul id="menu">
+        <li><a href="#introduccion">Introducción</a></li>
+        <li><a href="#tipos">Tipos</a></li>
+        <li><a href="#etapas">Etapas</a></li>
+        <li><a href="#modelo3d">Modelo 3D</a></li>
+        <li><a href="#interactivo">Interactivo</a></li>
+      </ul>
+    </nav>
+    <div class="menu-mobile" onclick="toggleMenu()">☰</div>
+  </header>
+
+  <main>
+    <section id="introduccion">
+      <h2>¿Qué es el metabolismo celular?</h2>
+      <p>Es el conjunto de todas las reacciones químicas que ocurren dentro de las células para mantenerlas vivas y funcionando. Estas reacciones permiten obtener energía, construir estructuras, eliminar desechos y reproducirse.</p>
+    </section>
+
+    <section id="tipos">
+      <h2>Tipos de metabolismo</h2>
+      <ul class="tabs">
+        <li onclick="showTab('anabolismo')">Anabolismo</li>
+        <li onclick="showTab('catabolismo')">Catabolismo</li>
+      </ul>
+      <div id="anabolismo" class="tab-content">
+        <p>El <strong>anabolismo</strong> construye moléculas complejas a partir de otras simples, como construir proteínas a partir de aminoácidos. Necesita energía.</p>
+      </div>
+      <div id="catabolismo" class="tab-content" style="display:none;">
+        <p>El <strong>catabolismo</strong> descompone moléculas complejas (como la glucosa) y libera energía, la cual se utiliza para actividades celulares.</p>
+      </div>
+    </section>
+
+    <section id="etapas">
+      <h2>Etapas principales del metabolismo</h2>
+      <ul>
+        <li><strong>Glucólisis:</strong> rompe la glucosa en el citoplasma para obtener energía (ATP).</li>
+        <li><strong>Ciclo de Krebs:</strong> ocurre en la mitocondria; produce CO₂ y más energía.</li>
+        <li><strong>Cadena de transporte de electrones:</strong> genera la mayor parte del ATP.</li>
+      </ul>
+    </section>
+
+    <section id="modelo3d">
+      <h2>Modelo 3D de una célula</h2>
+      <iframe title="Célula 3D" frameborder="0" width="100%" height="480"
+        src="https://embed.sketchfab.com/models/ba2c92d6cdaa4f89b2d1a3ffb678e06c/embed">
+      </iframe>
+    </section>
+
+    <section id="interactivo">
+      <h2>Explora los procesos</h2>
+      <button onclick="alert('La glucólisis convierte glucosa en piruvato y libera 2 ATP.')">¿Qué es la glucólisis?</button>
+      <button onclick="alert('La mitocondria transforma energía química en ATP, la energía útil para la célula.')">¿Qué hace la mitocondria?</button>
+    </section>
+  </main>
+
+  <footer>
+    <p>Proyecto educativo - Metabolismo Celular</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
