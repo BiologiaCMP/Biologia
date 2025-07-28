@@ -1,178 +1,563 @@
+These changes:
+1. Add 3-level progression system
+2. Add lives system
+3. Add dangerous spike obstacles in higher levels 
+4. Increase enemy count in higher levels
+5. Improve win/lose handling
+6. Make the game progressively more challengingHere is the updated HTML content after applying above edits:
+
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Biología Interactiva</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #f0f8ff;
-      margin: 0;
-      padding: 0;
-      color: #333;
-    }
-    header {
-      background: #008080;
-      color: white;
-      padding: 20px;
-      text-align: center;
-    }
-    nav {
-      background: #20b2aa;
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      padding: 10px;
-    }
-    nav a {
-      color: white;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    section {
-      padding: 30px;
-    }
-    h2 {
-      color: #008080;
-    }
-    .card {
-      background: white;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-      border-radius: 10px;
-      margin: 20px 0;
-      padding: 20px;
-    }
-    ul {
-      list-style-type: square;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 20px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Quest Adventure</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+            font-family: 'Arial', sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 400px;
+            margin: 20px auto;
+            background: linear-gradient(to bottom, #87CEEB 60%, #5B9A4B);
+            overflow: hidden;
+            border: 4px solid #333;
+        }
+        #player {
+            position: absolute;
+            width: 40px;
+            height: 60px;
+            background-color: #FF5555;
+            border-radius: 10px 10px 0 0;
+            z-index: 10;
+        }
+        .platform {
+            position: absolute;
+            background-color: #8B4513;
+            z-index: 5;
+        }
+        .coin {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: gold;
+            border-radius: 50%;
+            z-index: 8;
+            animation: spin 2s linear infinite;
+        }
+        .enemy {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: #993333;
+            border-radius: 50%;
+            z-index: 7;
+        }
+        .spike {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #555;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            z-index: 6;
+        }
+        .spike {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #555;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            z-index: 6;
+        }
+        #score-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            color: white;
+            text-shadow: 2px 2px 4px #000;
+        }
+        #controls {
+            text-align: center;
+            margin-top: 10px;
+        }
+        button {
+            padding: 8px 15px;
+            margin: 0 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        @keyframes spin {
+            0% { transform: scale(1.1); }
+            50% { transform: scale(0.9); }
+            100% { transform: scale(1.1); }
+        }
+        #power-up {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: #00AAFF;
+            border-radius: 50%;
+            z-index: 8;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        #message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: white;
+            text-shadow: 3px 3px 6px #000;
+            text-align: center;
+            display: none;
+            z-index: 20;
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>Biología Interactiva</h1>
-    <p>Explora los conceptos esenciales de la biología celular</p>
-  </header>
+    <div id="game-container">
+        <div id="player"></div>
+        <div id="score-display">Puntos: 0</div>
+        <div id="message">¡Pulsa START para jugar!</div>
+    </div>
+    <div id="controls">
+        <button id="start-btn">START</button>
+    </div>
 
-  <nav>
-    <a href="#transporte">Transporte Celular</a>
-    <a href="#biomoleculas">Biomoléculas</a>
-    <a href="#metabolismo">Metabolismo</a>
-    <a href="#trabajo">Trabajo Práctico</a>
-  </nav>
+    <script>
+        // Configuración del juego
+        const game = {
+            currentLevel: 1,
+            maxLevels: 3,
+            player: {
+                x: 50,
+                y: 300,
+                width: 40,
+                height: 60,
+                speed: 5,
+                jumpPower: 12,
+                isJumping: false,
+                gravity: 0.5,
+                velocityY: 0,
+                hasPowerUp: false
+            },
+            platforms: [],
+            coins: [],
+            enemies: [],
+            powerUps: [],
+            score: 0,
+            lives: 3,
+            isGameRunning: false,
+            keys: {
+                left: false,
+                right: false,
+                up: false
+            }
+        };
 
-  <section id="transporte">
-    <h2>Transporte Celular</h2>
-    <div class="card">
-      <h3>Transporte Pasivo</h3>
-      <ul>
-        <li>No requiere energía, se da a favor del gradiente de concentración.</li>
-        <li>Difusión simple: paso directo de moléculas pequeñas.</li>
-        <li>Difusión facilitada: uso de proteínas.</li>
-        <li>Ósmosis: paso del agua.</li>
-      </ul>
-    </div>
-    <div class="card">
-      <h3>Transporte Activo</h3>
-      <ul>
-        <li>Requiere energía, se da en contra del gradiente de concentración.</li>
-        <li>Bomba de sodio y potasio.</li>
-        <li>Endocitosis: la célula ingresa sustancias.</li>
-        <li>Exocitosis: la célula expulsa sustancias.</li>
-      </ul>
-    </div>
-  </section>
+        // Elementos del DOM
+        const gameContainer = document.getElementById('game-container');
+        const playerElement = document.getElementById('player');
+        const scoreDisplay = document.getElementById('score-display');
+        const startBtn = document.getElementById('start-btn');
+        const messageElement = document.getElementById('message');
 
-  <section id="biomoleculas">
-    <h2>Biomoléculas</h2>
-    <div class="grid">
-      <div class="card">
-        <h3>Agua (H<sub>2</sub>O)</h3>
-        <ul>
-          <li>Principal componente de los seres vivos.</li>
-          <li>Transporta sustancias, regula temperatura y es disolvente universal.</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Proteínas</h3>
-        <ul>
-          <li>Forman estructuras y permiten movimiento.</li>
-          <li>Transportan sustancias y regulan funciones.</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Lípidos</h3>
-        <ul>
-          <li>Almacenan energía y protegen órganos.</li>
-          <li>Forman parte de las células y absorben vitaminas.</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Ácidos Nucleicos (ADN y ARN)</h3>
-        <p>Contienen la información genética:</p>
-        <ul>
-          <li>ADN: doble hélice, timina, desoxirribosa.</li>
-          <li>ARN: una hebra, uracilo, ribosa.</li>
-        </ul>
-      </div>
-    </div>
-  </section>
+        // Inicializar el juego
+        function initGame() {
+            // Limpiar elementos existentes
+            document.querySelectorAll('.platform, .coin, .enemy, #power-up').forEach(el => el.remove());
+            game.platforms = [];
+            game.coins = [];
+            game.enemies = [];
+            game.powerUps = [];
 
-  <section id="metabolismo">
-    <h2>Metabolismo Celular</h2>
-    <div class="card">
-      <h3>Definición</h3>
-      <p>Conjunto de procesos que realiza una célula para mantenerse viva y responder al entorno.</p>
-    </div>
-    <div class="grid">
-      <div class="card">
-        <h3>Nutrición</h3>
-        <ul>
-          <li>Fagocitosis y pinocitosis.</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Locomoción</h3>
-        <ul>
-          <li>Movimiento celular mediante cilios, flagelos, pseudópodos.</li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Relación</h3>
-        <p>Capacidad de la célula para responder a estímulos.</p>
-      </div>
-      <div class="card">
-        <h3>Reproducción</h3>
-        <p>Multiplicación celular por mitosis o meiosis.</p>
-      </div>
-    </div>
-    <div class="grid">
-      <div class="card">
-        <h3>Proceso Anabólico</h3>
-        <p>Construcción de moléculas grandes. Ej: fotosíntesis.</p>
-      </div>
-      <div class="card">
-        <h3>Proceso Catabólico</h3>
-        <p>Descomposición de moléculas. Ej: respiración celular.</p>
-      </div>
-    </div>
-  </section>
+            // Resetear jugador
+            game.player = {
+                x: 50,
+                y: 300,
+                width: 40,
+                height: 60,
+                speed: 5,
+                jumpPower: 12,
+                isJumping: false,
+                gravity: 0.5,
+                velocityY: 0,
+                hasPowerUp: false
+            };
+            game.score = 0;
+            updateScore();
 
-  <section id="trabajo">
-    <h2>Trabajo Práctico</h2>
-    <div class="card">
-      <ol>
-        <li>Formar grupos (nota individual).</li>
-        <li>Ordenar los temas desarrollados.</li>
-        <li>Temas: biomoléculas, metabolismo celular, fotosíntesis, respiración y transporte celular.</li>
-        <li>Fecha probable de exposición: 31 de julio.</li>
-      </ol>
-    </div>
-  </section>
+            // Crear plataformas
+            createPlatform(0, 360, 800, 40); // Suelo
+            createPlatform(100, 280, 200, 20);
+            createPlatform(350, 220, 150, 20);
+            createPlatform(200, 150, 100, 20);
+            createPlatform(500, 280, 200, 20);
+            createPlatform(700, 180, 100, 20);
+
+            // Crear monedas
+            for (let i = 0; i < 10; i++) {
+                createCoin(150 + i * 40, 240);
+            }
+            createCoin(400, 180);
+            createCoin(450, 180);
+            createCoin(250, 110);
+            createCoin(550, 240);
+
+            // Crear enemigos basado en nivel
+            if(game.currentLevel === 1) {
+                createEnemy(300, 320);
+                createEnemy(600, 240);
+                createEnemy(750, 140);
+            } else if(game.currentLevel === 2) {
+                createEnemy(200, 320);
+                createEnemy(400, 240);
+                createEnemy(600, 160);
+                createEnemy(700, 320);
+            } else {
+                createEnemy(150, 320);
+                createEnemy(250, 220);
+                createEnemy(350, 120);
+                createEnemy(550, 220);
+                createEnemy(700, 320);
+            }
+
+            // Crear power-up
+            createPowerUp(700, 130);
+            
+            // Crear spikes en niveles avanzados
+            if(game.currentLevel >= 2) {
+                createSpike(400, 360);
+            }
+            if(game.currentLevel === 3) {
+                createSpike(250, 280);
+                createSpike(600, 380);
+            }
+            
+            // Crear spikes en niveles avanzados
+            if(game.currentLevel >= 2) {
+                createSpike(400, 360);
+            }
+            if(game.currentLevel === 3) {
+                createSpike(250, 280);
+                createSpike(600, 380);
+            }
+
+            // Mostrar mensaje inicial
+            messageElement.textContent = "¡Pulsa START para jugar!";
+            messageElement.style.display = "block";
+            game.isGameRunning = false;
+        }
+
+        // Crear plataforma
+        function createPlatform(x, y, width, height) {
+            const platform = document.createElement('div');
+            platform.className = 'platform';
+            platform.style.left = x + 'px';
+            platform.style.top = y + 'px';
+            platform.style.width = width + 'px';
+            platform.style.height = height + 'px';
+            gameContainer.appendChild(platform);
+            
+            game.platforms.push({ element: platform, x, y, width, height });
+        }
+
+        // Crear moneda
+        function createCoin(x, y) {
+            const coin = document.createElement('div');
+            coin.className = 'coin';
+            coin.style.left = x + 'px';
+            coin.style.top = y + 'px';
+            gameContainer.appendChild(coin);
+            
+            game.coins.push({ element: coin, x, y });
+        }
+
+        // Crear enemigo
+        function createEnemy(x, y) {
+            const enemy = document.createElement('div');
+            enemy.className = 'enemy';
+            enemy.style.left = x + 'px';
+            enemy.style.top = y + 'px';
+            gameContainer.appendChild(enemy);
+            
+            // Añadir movimiento aleatorio a los enemigos
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            const speed = 1 + Math.random() * 2;
+            
+            game.enemies.push({ 
+                element: enemy, 
+                x, 
+                y, 
+                direction,
+                speed,
+                originalX: x
+            });
+        }
+
+        // Crear spike
+        function createSpike(x, y) {
+            const spike = document.createElement('div');
+            spike.className = 'spike';
+            spike.style.left = x + 'px';
+            spike.style.top = y + 'px';
+            gameContainer.appendChild(spike);
+        }
+        
+        // Crear spike
+        function createSpike(x, y) {
+            const spike = document.createElement('div');
+            spike.className = 'spike';
+            spike.style.left = x + 'px';
+            spike.style.top = y + 'px';
+            gameContainer.appendChild(spike);
+        }
+        
+        // Crear power-up
+        function createPowerUp(x, y) {
+            const powerUp = document.createElement('div');
+            powerUp.id = 'power-up';
+            powerUp.style.left = x + 'px';
+            powerUp.style.top = y + 'px';
+            gameContainer.appendChild(powerUp);
+            
+            game.powerUps.push({ element: powerUp, x, y });
+        }
+
+        // Actualizar puntuación
+        function updateScore() {
+            scoreDisplay.textContent = `Puntos: ${game.score}`;
+        }
+
+        // Manejar colisiones con plataformas
+        function handlePlatformCollisions() {
+            let onGround = false;
+            
+            game.platforms.forEach(platform => {
+                // Colisión desde arriba (caída sobre plataforma)
+                if (game.player.x + game.player.width > platform.x &&
+                    game.player.x < platform.x + platform.width &&
+                    game.player.y + game.player.height >= platform.y &&
+                    game.player.y + game.player.height <= platform.y + 20 &&
+                    game.player.velocityY > 0) {
+                    
+                    game.player.y = platform.y - game.player.height;
+                    game.player.velocityY = 0;
+                    game.player.isJumping = false;
+                    onGround = true;
+                }
+            });
+            
+            // Aplicar gravedad si no está en una plataforma
+            if (!onGround) {
+                game.player.velocityY += game.player.gravity;
+                game.player.isJumping = true;
+            }
+        }
+
+        // Recolectar monedas
+        function collectCoins() {
+            game.coins = game.coins.filter(coin => {
+                // Verificar colisión con jugador
+                if (Math.abs(game.player.x + game.player.width/2 - (coin.x + 10)) < 25 &&
+                    Math.abs(game.player.y + game.player.height/2 - (coin.y + 10)) < 25) {
+                    
+                    // Eliminar moneda del DOM y sumar puntos
+                    coin.element.remove();
+                    game.score += 10;
+                    updateScore();
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // Manejar power-ups
+        function handlePowerUps() {
+            game.powerUps = game.powerUps.filter(powerUp => {
+                // Verificar colisión con jugador
+                if (Math.abs(game.player.x + game.player.width/2 - (powerUp.x + 15)) < 30 &&
+                    Math.abs(game.player.y + game.player.height/2 - (powerUp.y + 15)) < 30) {
+                    
+                    // Activar power-up
+                    powerUp.element.remove();
+                    game.player.hasPowerUp = true;
+                    game.player.width = 50;
+                    game.player.height = 70;
+                    playerElement.style.width = game.player.width + 'px';
+                    playerElement.style.height = game.player.height + 'px';
+                    playerElement.style.backgroundColor = '#FF9900';
+                    setTimeout(() => {
+                        game.player.hasPowerUp = false;
+                        game.player.width = 40;
+                        game.player.height = 60;
+                        playerElement.style.width = game.player.width + 'px';
+                        playerElement.style.height = game.player.height + 'px';
+                        playerElement.style.backgroundColor = '#FF5555';
+                    }, 10000);
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        // Manejar enemigos
+        function handleEnemies() {
+            game.enemies.forEach(enemy => {
+                // Mover enemigo (patrón de ida y vuelta)
+                enemy.x += enemy.direction * enemy.speed;
+                
+                // Cambiar dirección si se aleja demasiado de su posición original
+                if (Math.abs(enemy.x - enemy.originalX) > 100) {
+                    enemy.direction *= -1;
+                }
+                
+                enemy.element.style.left = enemy.x + 'px';
+                
+                // Verificar colisión con jugador
+                if (Math.abs(game.player.x + game.player.width/2 - (enemy.x + 20)) < 30 &&
+                    Math.abs(game.player.y + game.player.height/2 - (enemy.y + 20)) < 40) {
+                    
+                    if (game.player.hasPowerUp) {
+                        // Eliminar enemigo si tiene power-up
+                        game.enemies = game.enemies.filter(e => e !== enemy);
+                        enemy.element.remove();
+                        game.score += 50;
+                        updateScore();
+                    } else if (game.player.y + game.player.height < enemy.y + 20) {
+                        // Saltar sobre el enemigo
+                        game.player.velocityY = -game.player.jumpPower * 0.8;
+                        game.enemies = game.enemies.filter(e => e !== enemy);
+                        enemy.element.remove();
+                        game.score += 30;
+                        updateScore();
+                    } else {
+                        // Perder vida o reiniciar
+                        gameOver();
+                    }
+                }
+            });
+        }
+
+        // Verificar si el jugador cayó del nivel
+        function checkPlayerBounds() {
+            if (game.player.y > gameContainer.clientHeight) {
+                gameOver();
+            }
+        }
+
+        // Verificar si ganó (recolectó todas las monedas)
+        function checkWinCondition() {
+            if (game.coins.length === 0) {
+                if(game.currentLevel < game.maxLevels) {
+                    game.currentLevel++;
+                    messageElement.textContent = "¡Nivel " + game.currentLevel + "! Preparado...";
+                    setTimeout(() => {
+                        messageElement.style.display = "none";
+                        initGame();
+                    }, 2000);
+                } else {
+                    messageElement.textContent = "¡GANASTE TODOS LOS NIVELES! Puntos: " + game.score;
+                    game.isGameRunning = false;
+                }
+                messageElement.style.display = "block";
+            }
+        }
+
+        // Game over
+        function gameOver() {
+            game.lives--;
+            if(game.lives > 0) {
+                messageElement.textContent = "¡Perdiste una vida! Vidas restantes: " + game.lives;
+                setTimeout(() => {
+                    messageElement.style.display = "none";
+                    initGame();
+                }, 1500);
+            } else {
+                messageElement.textContent = "GAME OVER - Puntos: " + game.score;
+                game.isGameRunning = false;
+            }
+            messageElement.style.display = "block";
+        }
+
+        // Actualizar posición del jugador
+        function updatePlayerPosition() {
+            // Movimiento horizontal
+            if (game.keys.left) {
+                game.player.x -= game.player.speed;
+                if (game.player.x < 0) game.player.x = 0;
+            }
+            if (game.keys.right) {
+                game.player.x += game.player.speed;
+                if (game.player.x + game.player.width > gameContainer.clientWidth) {
+                    game.player.x = gameContainer.clientWidth - game.player.width;
+                }
+            }
+            
+            // Salto
+            if (game.keys.up && !game.player.isJumping) {
+                game.player.velocityY = -game.player.jumpPower;
+                game.player.isJumping = true;
+            }
+            
+            // Movimiento vertical
+            game.player.y += game.player.velocityY;
+            
+            // Aplicar límites
+            playerElement.style.left = game.player.x + 'px';
+            playerElement.style.top = game.player.y + 'px';
+        }
+
+        // Bucle del juego
+        function gameLoop() {
+            if (!game.isGameRunning) return;
+            
+            updatePlayerPosition();
+            handlePlatformCollisions();
+            collectCoins();
+            handlePowerUps();
+            handleEnemies();
+            checkPlayerBounds();
+            checkWinCondition();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Event listeners para teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') game.keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') game.keys.right = true;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') game.keys.up = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') game.keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') game.keys.right = false;
+            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') game.keys.up = false;
+        });
+
+        // Botón de inicio
+        startBtn.addEventListener('click', () => {
+            initGame();
+            messageElement.style.display = "none";
+            game.isGameRunning = true;
+            gameLoop();
+        });
+
+        // Inicializar el juego al cargar
+        initGame();
+    </script>
 </body>
 </html>
+``` --- End of CSV data ---
