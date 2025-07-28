@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jumpy Journey Avanzado</title>
+    <title>Jumpy Journey: Edición Pixel Art</title>
     <style>
         /* Estilos del Juego (CSS Integrado) */
         body {
@@ -38,7 +38,7 @@
 
         canvas {
             border: 3px solid #f1c40f; /* Borde del canvas */
-            background-color: #7fd4e7; /* Fondo del cielo */
+            background-color: #7fd4e7; /* Fondo del cielo por defecto */
             display: block;
             margin: 0 auto;
         }
@@ -52,7 +52,7 @@
             color: #bdc3c7;
         }
 
-        #game-over-screen {
+        #game-over-screen, #loading-screen {
             position: fixed;
             top: 0;
             left: 0;
@@ -93,16 +93,41 @@
         .hidden {
             display: none !important;
         }
+
+        #boss-health-bar {
+            width: 80%;
+            height: 20px;
+            background-color: #555;
+            border: 2px solid #333;
+            margin-top: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            display: none; /* Oculto por defecto */
+        }
+
+        #boss-health-fill {
+            height: 100%;
+            width: 100%; /* Se ajusta con JS */
+            background-color: #e74c3c;
+            transition: width 0.1s ease-out;
+        }
     </style>
 </head>
 <body>
-    <div id="game-container">
+    <div id="loading-screen">
+        <p>Cargando recursos...</p>
+    </div>
+
+    <div id="game-container" class="hidden">
         <h1>Jumpy Journey Avanzado</h1>
         <canvas id="gameCanvas" width="900" height="500"></canvas>
         <div id="game-info">
             <p>Puntos: <span id="score">0</span></p>
             <p>Vidas: <span id="lives">3</span></p>
             <p>Nivel: <span id="level-display">1</span></p>
+        </div>
+        <div id="boss-health-bar">
+            <div id="boss-health-fill"></div>
         </div>
         <div id="game-over-screen" class="hidden">
             <h2 id="game-over-title">¡Juego Terminado!</h2>
@@ -112,7 +137,6 @@
     </div>
 
     <script>
-        // Lógica del Juego (JavaScript Integrado)
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
@@ -123,16 +147,20 @@
         const gameOverTitle = document.getElementById('game-over-title');
         const finalScoreDisplay = document.getElementById('final-score');
         const restartButton = document.getElementById('restart-button');
+        const loadingScreen = document.getElementById('loading-screen');
+        const gameContainer = document.getElementById('game-container');
+        const bossHealthBar = document.getElementById('boss-health-bar');
+        const bossHealthFill = document.getElementById('boss-health-fill');
 
         // --- Variables del Juego ---
         let score = 0;
         let lives = 3;
-        let gameRunning = true;
-        let currentLevelIndex = 0; // Usamos un índice para el array de niveles
+        let gameRunning = false; // Se inicia en false hasta que las imágenes carguen
+        let currentLevelIndex = 0;
 
         const GRAVITY = 0.5;
-        const GROUND_LEVEL = canvas.height - 40; // Donde el suelo empieza
-        const TILE_SIZE = 40; // Tamaño base para elementos (ej. bloques, personajes)
+        const GROUND_LEVEL = canvas.height - 40;
+        const TILE_SIZE = 40;
 
         // --- Jugador ---
         const player = {
@@ -140,16 +168,15 @@
             y: GROUND_LEVEL - TILE_SIZE,
             width: TILE_SIZE,
             height: TILE_SIZE,
-            color: 'red',
             speed: 5,
             velocityY: 0,
             isJumping: false,
             onGround: true,
-            hasFirePower: false, // Nuevo: Habilidad de disparar
-            projectiles: [], // Array de proyectiles
+            hasFirePower: false,
+            projectiles: [],
             invincible: false,
             invincibilityTimer: 0,
-            maxInvincibilityTime: 120 // Cuadros (2 segundos a 60 FPS)
+            maxInvincibilityTime: 120 // 2 segundos a 60 FPS
         };
 
         // --- Array para Teclas Presionadas ---
@@ -157,208 +184,276 @@
             right: false,
             left: false,
             space: false,
-            fire: false // Nuevo: Tecla para disparar
+            fire: false,
+            canFire: true // Controla el cooldown del disparo
         };
 
-        // --- Niveles (Definición de plataformas, enemigos, etc.) ---
+        // --- Assets de Imágenes ---
+        const images = {};
+        const imageSources = {
+            player: 'https://i.ibb.co/L5w2R0Z/player-sprite.png', // Ejemplo de jugador pixel art
+            playerFire: 'https://i.ibb.co/S6y4t02/player-fire-sprite.png', // Jugador con poder de fuego
+            goomber: 'https://i.ibb.co/hV41FjP/mushroom-enemy.png', // Enemigo tipo Goomba
+            spiker: 'https://i.ibb.co/Qn3241R/spike-enemy.png', // Enemigo tipo Spiker (estático)
+            flutterby: 'https://i.ibb.co/s613qf0/flying-enemy.png', // Enemigo volador
+            turretPlant: 'https://i.ibb.co/yQ30W1N/plant-turret.png', // Planta torreta
+            spikeTrap: 'https://i.ibb.co/zX5Y77N/spike-trap.png', // Trampa de pinchos
+            platform: 'https://i.ibb.co/qF41P42/grass-platform.png', // Plataforma de tierra/hierba
+            crumblingPlatform: 'https://i.ibb.co/F820Y1R/crumbling-platform.png', // Plataforma que se rompe
+            backgroundForest: 'https://i.ibb.co/yQ20W1N/forest-bg.png', // Fondo de bosque
+            backgroundCave: 'https://i.ibb.co/Qn3241R/cave-bg.png', // Fondo de cueva
+            backgroundLava: 'https://i.ibb.co/L5w2R0Z/lava-bg.png', // Fondo de lava (para el jefe)
+            coin: 'https://i.ibb.co/hV41FjP/coin.png', // Moneda
+            heart: 'https://i.ibb.co/Qn3241R/heart.png', // Vida extra
+            fireFlower: 'https://i.ibb.co/zX5Y77N/fire-flower.png', // Flor de fuego
+            exitFlag: 'https://i.ibb.co/L5w2R0Z/flag-pole.png', // Bandera de salida
+            playerFireball: 'https://i.ibb.co/S6y4t02/fireball.png', // Proyectil del jugador
+            enemyProjectile: 'https://i.ibb.co/hV41FjP/enemy-projectile.png', // Proyectil del enemigo
+            boss: 'https://i.ibb.co/Qn3241R/boss-monster.png', // Jefe final
+            bossProjectile: 'https://i.ibb.co/zX5Y77N/boss-projectile.png' // Proyectil del jefe
+        };
+
+        let loadedImagesCount = 0;
+        const totalImages = Object.keys(imageSources).length;
+
+        function loadImage(name, src) {
+            const img = new Image();
+            img.src = src;
+            img.onload = () => {
+                images[name] = img;
+                loadedImagesCount++;
+                if (loadedImagesCount === totalImages) {
+                    startGame();
+                }
+            };
+            img.onerror = () => {
+                console.error(`Error cargando imagen: ${src}`);
+                // Podrías manejar esto mostrando un mensaje de error o usando un color de fallback
+                images[name] = null; // Marca la imagen como no cargada
+                loadedImagesCount++; // Asegura que el contador avance incluso con errores
+                if (loadedImagesCount === totalImages) {
+                    startGame();
+                }
+            };
+        }
+
+        // --- Objeto Jefe Final ---
+        const boss = {
+            x: canvas.width / 2 - TILE_SIZE * 2,
+            y: GROUND_LEVEL - TILE_SIZE * 4,
+            width: TILE_SIZE * 4,
+            height: TILE_SIZE * 4,
+            maxHealth: 1000,
+            health: 1000,
+            speed: 1,
+            dir: 1, // 1 para derecha, -1 para izquierda
+            shootTimer: 0,
+            shootInterval: 90, // Cuadros entre disparos
+            active: false, // Solo activo en el nivel del jefe
+            initialX: canvas.width / 2 - TILE_SIZE * 2,
+            moveRange: 150 // Rango de movimiento horizontal
+        };
+
+        // --- Niveles del Juego ---
         const levels = [
             // Nivel 1: Introducción
             {
+                background: 'backgroundForest',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' }, // Suelo
-                    { x: 200, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 3, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 550, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: 200, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 3, height: TILE_SIZE, img: 'platform' },
+                    { x: 550, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' }
                 ],
                 enemies: [
-                    { x: 300, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, color: '#800080', speed: 1.5, type: 'goomber', dir: 1, initialX: 300 }
+                    { x: 300, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, img: 'goomber', speed: 1.5, type: 'goomber', dir: 1, initialX: 300, moveRange: 100 }
                 ],
                 obstacles: [],
                 powerUps: [
-                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: 20, height: 20, color: 'yellow', type: 'score' }
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: 20, height: 20, img: 'coin', type: 'score' }
                 ],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, img: 'exitFlag' }
             },
             // Nivel 2: Primeros Spikes y más Goombers
             {
+                background: 'backgroundForest',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' },
-                    { x: 150, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 3, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 500, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: 150, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 3, height: TILE_SIZE, img: 'platform' },
+                    { x: 500, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' }
                 ],
                 enemies: [
-                    { x: 200, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, color: '#800080', speed: 2, type: 'goomber', dir: 1, initialX: 200 },
-                    { x: 600, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, color: '#800080', speed: 2, type: 'goomber', dir: -1, initialX: 600 }
+                    { x: 200, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, img: 'goomber', speed: 2, type: 'goomber', dir: 1, initialX: 200, moveRange: 100 },
+                    { x: 600, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, img: 'goomber', speed: 2, type: 'goomber', dir: -1, initialX: 600, moveRange: 100 }
                 ],
                 obstacles: [
-                    { x: 350, y: GROUND_LEVEL - 20, width: TILE_SIZE * 1.5, height: 20, color: '#333', type: 'spike' }
+                    { x: 350, y: GROUND_LEVEL - 20, width: TILE_SIZE * 1.5, height: 20, img: 'spikeTrap', type: 'spike' }
                 ],
                 powerUps: [
-                    { x: 50, y: GROUND_LEVEL - TILE_SIZE * 2, width: 20, height: 20, color: 'yellow', type: 'score' }
+                    { x: 50, y: GROUND_LEVEL - TILE_SIZE * 2, width: 20, height: 20, img: 'coin', type: 'score' }
                 ],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, img: 'exitFlag' }
             },
             // Nivel 3: Spikers y Plataformas Elevadas
             {
+                background: 'backgroundForest',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' },
-                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 400, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 3, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 700, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 1.5, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' },
+                    { x: 400, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 3, height: TILE_SIZE, img: 'platform' },
+                    { x: 700, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 1.5, height: TILE_SIZE, img: 'platform' }
                 ],
                 enemies: [
-                    { x: 450, y: GROUND_LEVEL - TILE_SIZE * 5, width: TILE_SIZE, height: TILE_SIZE, color: '#FF4500', type: 'spiker' } // Spiker fijo
+                    { x: 450, y: GROUND_LEVEL - TILE_SIZE * 5, width: TILE_SIZE, height: TILE_SIZE, img: 'spiker', type: 'spiker' }
                 ],
                 obstacles: [
-                    { x: 250, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: '#333', type: 'spike' },
-                    { x: 600, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: '#333', type: 'spike' }
+                    { x: 250, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, img: 'spikeTrap', type: 'spike' },
+                    { x: 600, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, img: 'spikeTrap', type: 'spike' }
                 ],
                 powerUps: [
-                    { x: 750, y: GROUND_LEVEL - TILE_SIZE * 3, width: 20, height: 20, color: 'blue', type: 'extraLife' }
+                    { x: 750, y: GROUND_LEVEL - TILE_SIZE * 3, width: 20, height: 20, img: 'heart', type: 'extraLife' }
                 ],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, img: 'exitFlag' }
             },
-            // Nivel 4: Primeros Flutterbys y Fuego
+            // Nivel 4: Primeros Flutterbys y Flor de Fuego
             {
+                background: 'backgroundForest',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' },
-                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 400, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' },
+                    { x: 400, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' }
                 ],
                 enemies: [
-                    { x: 300, y: 100, width: TILE_SIZE, height: TILE_SIZE, color: '#00FFFF', speed: 1, type: 'flutterby', dir: 1, initialY: 100, range: 50 } // Flutterby
+                    { x: 300, y: 100, width: TILE_SIZE, height: TILE_SIZE, img: 'flutterby', speed: 1, type: 'flutterby', dir: 1, initialY: 100, range: 50 }
                 ],
                 obstacles: [],
                 powerUps: [
-                    { x: 250, y: GROUND_LEVEL - TILE_SIZE * 3, width: 20, height: 20, color: 'orange', type: 'fireFlower' } // Flor de fuego
+                    { x: 250, y: GROUND_LEVEL - TILE_SIZE * 3, width: 20, height: 20, img: 'fireFlower', type: 'fireFlower' }
                 ],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, img: 'exitFlag' }
             },
             // Nivel 5: Turret Plants y Pinchos Móviles
             {
+                background: 'backgroundCave',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' },
-                    { x: 250, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 4, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: 250, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 4, height: TILE_SIZE, img: 'platform' }
                 ],
                 enemies: [
-                    { x: 100, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, color: '#800080', speed: 1.5, type: 'goomber', dir: 1, initialX: 100 },
-                    { x: 700, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, color: '#800080', speed: 1.5, type: 'goomber', dir: -1, initialX: 700 }
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, img: 'goomber', speed: 1.5, type: 'goomber', dir: 1, initialX: 100, moveRange: 100 },
+                    { x: 700, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, img: 'goomber', speed: 1.5, type: 'goomber', dir: -1, initialX: 700, moveRange: 100 }
                 ],
                 obstacles: [
-                    { x: 400, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: '#333', type: 'spike', moving: true, initialY: GROUND_LEVEL - 20, maxY: GROUND_LEVEL - TILE_SIZE * 2, speed: 1, dir: 1 },
-                    { x: 50, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: '#7CFC00', type: 'turretPlant', shootTimer: 0, shootInterval: 90 } // Planta torreta
+                    { x: 400, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, img: 'spikeTrap', type: 'spike', moving: true, initialY: GROUND_LEVEL - 20, maxY: GROUND_LEVEL - TILE_SIZE * 2, speed: 1, dir: 1 },
+                    { x: 50, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: TILE_SIZE, img: 'turretPlant', type: 'turretPlant', shootTimer: 0, shootInterval: 90 }
                 ],
                 powerUps: [],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, img: 'exitFlag' }
             },
             // Nivel 6: Plataformas que Desaparecen y Spikers
             {
+                background: 'backgroundCave',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' },
-                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513', type: 'crumbling' },
-                    { x: 300, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 500, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513', type: 'crumbling' },
-                    { x: 700, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'crumblingPlatform', type: 'crumbling' },
+                    { x: 300, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' },
+                    { x: 500, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'crumblingPlatform', type: 'crumbling' },
+                    { x: 700, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' }
                 ],
                 enemies: [
-                    { x: 350, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE, height: TILE_SIZE, color: '#FF4500', type: 'spiker' }
+                    { x: 350, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE, height: TILE_SIZE, img: 'spiker', type: 'spiker' }
                 ],
                 obstacles: [],
                 powerUps: [
-                    { x: 50, y: GROUND_LEVEL - TILE_SIZE * 3, width: 20, height: 20, color: 'blue', type: 'extraLife' }
+                    { x: 50, y: GROUND_LEVEL - TILE_SIZE * 3, width: 20, height: 20, img: 'heart', type: 'extraLife' }
                 ],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, img: 'exitFlag' }
             },
             // Nivel 7: Combinación de Enemigos y Obstáculos
             {
+                background: 'backgroundCave',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' },
-                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 400, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 3, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 700, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' },
+                    { x: 400, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 3, height: TILE_SIZE, img: 'platform' },
+                    { x: 700, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' }
                 ],
                 enemies: [
-                    { x: 200, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, color: '#800080', speed: 2, type: 'goomber', dir: 1, initialX: 200 },
-                    { x: 500, y: 100, width: TILE_SIZE, height: TILE_SIZE, color: '#00FFFF', speed: 1.5, type: 'flutterby', dir: 1, initialY: 100, range: 70 }
+                    { x: 200, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, img: 'goomber', speed: 2, type: 'goomber', dir: 1, initialX: 200, moveRange: 100 },
+                    { x: 500, y: 100, width: TILE_SIZE, height: TILE_SIZE, img: 'flutterby', speed: 1.5, type: 'flutterby', dir: 1, initialY: 100, range: 70 }
                 ],
                 obstacles: [
-                    { x: 300, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: '#333', type: 'spike' },
-                    { x: 600, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: '#7CFC00', type: 'turretPlant', shootTimer: 0, shootInterval: 60 }
+                    { x: 300, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, img: 'spikeTrap', type: 'spike' },
+                    { x: 600, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: TILE_SIZE, img: 'turretPlant', type: 'turretPlant', shootTimer: 0, shootInterval: 60 }
                 ],
                 powerUps: [],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, img: 'exitFlag' }
             },
             // Nivel 8: Más Movimiento y Peligro
             {
+                background: 'backgroundCave',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' },
-                    { x: 150, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513', type: 'crumbling' },
-                    { x: 450, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 3, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 750, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: 150, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'crumblingPlatform', type: 'crumbling' },
+                    { x: 450, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 3, height: TILE_SIZE, img: 'platform' },
+                    { x: 750, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' }
                 ],
                 enemies: [
-                    { x: 200, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE, height: TILE_SIZE, color: '#FF4500', type: 'spiker' },
-                    { x: 50, y: 50, width: TILE_SIZE, height: TILE_SIZE, color: '#00FFFF', speed: 2, type: 'flutterby', dir: 1, initialY: 50, range: 100 }
+                    { x: 200, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE, height: TILE_SIZE, img: 'spiker', type: 'spiker' },
+                    { x: 50, y: 50, width: TILE_SIZE, height: TILE_SIZE, img: 'flutterby', speed: 2, type: 'flutterby', dir: 1, initialY: 50, range: 100 }
                 ],
                 obstacles: [
-                    { x: 300, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: '#333', type: 'spike', moving: true, initialY: GROUND_LEVEL - 20, maxY: GROUND_LEVEL - TILE_SIZE * 3, speed: 1.5, dir: 1 }
+                    { x: 300, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, img: 'spikeTrap', type: 'spike', moving: true, initialY: GROUND_LEVEL - 20, maxY: GROUND_LEVEL - TILE_SIZE * 3, speed: 1.5, dir: 1 }
                 ],
                 powerUps: [
-                    { x: 600, y: GROUND_LEVEL - TILE_SIZE * 4, width: 20, height: 20, color: 'orange', type: 'fireFlower' }
+                    { x: 600, y: GROUND_LEVEL - TILE_SIZE * 4, width: 20, height: 20, img: 'fireFlower', type: 'fireFlower' }
                 ],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, img: 'exitFlag' }
             },
             // Nivel 9: Desafío de Habilidad
             {
+                background: 'backgroundCave',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' },
-                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513', type: 'crumbling' },
-                    { x: 400, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 3, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 700, y: GROUND_LEVEL - TILE_SIZE * 5, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'crumblingPlatform', type: 'crumbling' },
+                    { x: 400, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 3, height: TILE_SIZE, img: 'platform' },
+                    { x: 700, y: GROUND_LEVEL - TILE_SIZE * 5, width: TILE_SIZE * 2, height: TILE_SIZE, img: 'platform' }
                 ],
                 enemies: [
-                    { x: 500, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE, height: TILE_SIZE, color: '#800080', speed: 2.5, type: 'goomber', dir: 1, initialX: 500 },
-                    { x: 200, y: 150, width: TILE_SIZE, height: TILE_SIZE, color: '#00FFFF', speed: 2, type: 'flutterby', dir: 1, initialY: 150, range: 120 }
+                    { x: 500, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE, height: TILE_SIZE, img: 'goomber', speed: 2.5, type: 'goomber', dir: 1, initialX: 500, moveRange: 100 },
+                    { x: 200, y: 150, width: TILE_SIZE, height: TILE_SIZE, img: 'flutterby', speed: 2, type: 'flutterby', dir: 1, initialY: 150, range: 120 }
                 ],
                 obstacles: [
-                    { x: 250, y: GROUND_LEVEL - 20, width: TILE_SIZE * 3, height: 20, color: '#333', type: 'spike' },
-                    { x: 700, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: '#7CFC00', type: 'turretPlant', shootTimer: 0, shootInterval: 45 }
+                    { x: 250, y: GROUND_LEVEL - 20, width: TILE_SIZE * 3, height: 20, img: 'spikeTrap', type: 'spike' },
+                    { x: 700, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: TILE_SIZE, img: 'turretPlant', type: 'turretPlant', shootTimer: 0, shootInterval: 45 }
                 ],
                 powerUps: [],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, img: 'exitFlag' }
             },
-            // Nivel 10: El Desafío Final
+            // Nivel 10: ¡El JEFE FINAL!
             {
+                background: 'backgroundLava',
                 platforms: [
-                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: '#4CAF50' },
-                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513', type: 'crumbling' },
-                    { x: 300, y: GROUND_LEVEL - TILE_SIZE * 5, width: TILE_SIZE * 4, height: TILE_SIZE, color: '#8B4513' },
-                    { x: 700, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, color: '#8B4513' }
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, img: 'platform' },
+                    { x: canvas.width / 2 - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 4, height: TILE_SIZE, img: 'platform' } // Plataforma para el jefe
                 ],
-                enemies: [
-                    { x: 200, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, color: '#800080', speed: 3, type: 'goomber', dir: 1, initialX: 200 },
-                    { x: 500, y: GROUND_LEVEL - TILE_SIZE * 6, width: TILE_SIZE, height: TILE_SIZE, color: '#FF4500', type: 'spiker' },
-                    { x: 100, y: 100, width: TILE_SIZE, height: TILE_SIZE, color: '#00FFFF', speed: 2.5, type: 'flutterby', dir: 1, initialY: 100, range: 150 }
-                ],
-                obstacles: [
-                    { x: 400, y: GROUND_LEVEL - 20, width: TILE_SIZE * 2, height: 20, color: '#333', type: 'spike', moving: true, initialY: GROUND_LEVEL - 20, maxY: GROUND_LEVEL - TILE_SIZE * 4, speed: 2, dir: 1 },
-                    { x: 600, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: '#7CFC00', type: 'turretPlant', shootTimer: 0, shootInterval: 30 }
-                ],
+                enemies: [], // No hay enemigos normales, solo el jefe
+                obstacles: [],
                 powerUps: [
-                    { x: 50, y: GROUND_LEVEL - TILE_SIZE * 4, width: 20, height: 20, color: 'orange', type: 'fireFlower' }
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: 20, height: 20, img: 'fireFlower', type: 'fireFlower' } // Asegurar que el jugador tenga el arma
                 ],
-                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+                exit: null, // No hay salida, se termina al derrotar al jefe
+                isBossLevel: true
             }
         ];
 
-        let currentLevelData; // Se cargará al inicio de cada nivel
+        let currentLevelData;
         let gameProjectiles = []; // Proyectiles del jugador y de las torretas
 
         // --- Inicializar Nivel ---
         function loadLevel(levelNum) {
             if (levelNum >= levels.length) {
-                // Has completado todos los niveles
                 console.log("¡Felicidades, has completado el juego!");
-                showGameOver(true);
+                showGameOver(true); // Victoria
                 return;
             }
             currentLevelData = JSON.parse(JSON.stringify(levels[levelNum])); // Copia profunda
@@ -367,10 +462,23 @@
             player.velocityY = 0;
             player.isJumping = false;
             player.onGround = true;
-            // No resetear invencibilidad o firePower aquí, se mantienen
-            // player.hasFirePower = false; // Puedes decidir si se mantiene o se reinicia por nivel
+            player.invincible = false;
+            player.invincibilityTimer = 0;
             gameProjectiles = []; // Limpiar proyectiles al cambiar de nivel
-            levelDisplay.textContent = currentLevelIndex + 1; // Actualizar el display del nivel
+            levelDisplay.textContent = currentLevelIndex + 1;
+
+            // Reiniciar estado del jefe si es el nivel del jefe
+            if (currentLevelData.isBossLevel) {
+                boss.active = true;
+                boss.health = boss.maxHealth;
+                boss.x = boss.initialX;
+                boss.dir = 1;
+                bossHealthBar.style.display = 'block'; // Mostrar barra de vida del jefe
+                updateBossHealthBar();
+            } else {
+                boss.active = false;
+                bossHealthBar.style.display = 'none'; // Ocultar barra de vida del jefe
+            }
         }
 
         // --- Bucle Principal del Juego ---
@@ -390,357 +498,4 @@
 
             // Limitar movimiento dentro del canvas
             if (player.x < 0) player.x = 0;
-            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-
-            // 2. Gravedad
-            player.y += player.velocityY;
-            player.velocityY += GRAVITY;
-
-            // 3. Saltar
-            if (keys.space && player.onGround) {
-                player.velocityY = -10; // Fuerza de salto
-                player.isJumping = true;
-                player.onGround = false;
-            }
-
-            // 4. Disparar (con Fire Flower)
-            if (keys.fire && player.hasFirePower) {
-                gameProjectiles.push({
-                    x: player.x + player.width / 2 - 5,
-                    y: player.y + player.height / 2 - 5,
-                    width: 10,
-                    height: 10,
-                    color: 'orange',
-                    speed: 8,
-                    dir: keys.right ? 1 : (keys.left ? -1 : (player.x + player.width / 2 > canvas.width / 2 ? 1 : -1)) // Dispara en la última dirección o hacia la mitad del lienzo
-                });
-                keys.fire = false; // Para evitar disparo continuo
-            }
-
-            // 5. Actualizar Proyectiles
-            gameProjectiles.forEach((proj, index) => {
-                proj.x += proj.speed * proj.dir;
-                // Remover proyectiles fuera de pantalla
-                if (proj.x < 0 || proj.x > canvas.width) {
-                    gameProjectiles.splice(index, 1);
-                }
-            });
-
-            // 6. Colisiones con Plataformas
-            player.onGround = false;
-            currentLevelData.platforms.forEach(platform => {
-                if (checkCollision(player, platform)) {
-                    if (player.velocityY > 0 && player.y + player.height - player.velocityY <= platform.y) {
-                        player.y = platform.y - player.height;
-                        player.velocityY = 0;
-                        player.onGround = true;
-                        player.isJumping = false;
-
-                        // Plataformas que desaparecen
-                        if (platform.type === 'crumbling') {
-                            platform.crumblingTimer = platform.crumblingTimer || 0;
-                            platform.crumblingTimer++;
-                            if (platform.crumblingTimer > 30) { // Desaparece después de 0.5 segundos
-                                platform.exists = false;
-                            }
-                        }
-                    } else if (player.velocityY < 0 && player.y >= platform.y + platform.height - 5) { // Pequeño margen para golpe
-                        player.velocityY = 0; // Detiene el salto ascendente
-                    }
-                }
-            });
-            // Filtrar plataformas que han desaparecido
-            currentLevelData.platforms = currentLevelData.platforms.filter(p => p.exists !== false);
-
-
-            // Asegurarse de que el jugador no caiga por debajo del suelo
-            if (player.y + player.height > GROUND_LEVEL) {
-                player.y = GROUND_LEVEL - player.height;
-                player.velocityY = 0;
-                player.onGround = true;
-                player.isJumping = false;
-            }
-
-            // 7. Actualizar Enemigos
-            currentLevelData.enemies.forEach(enemy => {
-                if (enemy.type === 'goomber') {
-                    // Goombers se mueven en un rango definido
-                    const moveRange = 100; // Define cuánto se mueven antes de girar
-                    if (enemy.dir === 1 && enemy.x >= enemy.initialX + moveRange) {
-                        enemy.dir = -1;
-                    } else if (enemy.dir === -1 && enemy.x <= enemy.initialX - moveRange) {
-                        enemy.dir = 1;
-                    }
-                    enemy.x += enemy.speed * enemy.dir;
-
-                    // Aplicar gravedad a los goombers si no están sobre una plataforma
-                    let enemyOnPlatform = false;
-                    currentLevelData.platforms.forEach(platform => {
-                        if (checkCollision({ x: enemy.x, y: enemy.y + enemy.height + 1, width: enemy.width, height: 1 }, platform)) {
-                            enemyOnPlatform = true;
-                            enemy.y = platform.y - enemy.height; // Alinear al suelo de la plataforma
-                        }
-                    });
-                    if (!enemyOnPlatform && enemy.y + enemy.height < GROUND_LEVEL) {
-                         enemy.y += GRAVITY * 2;
-                    } else if (enemy.y + enemy.height > GROUND_LEVEL) {
-                        enemy.y = GROUND_LEVEL - enemy.height;
-                    }
-
-                } else if (enemy.type === 'flutterby') {
-                    // Flutterbys se mueven verticalmente
-                    if (enemy.dir === 1) { // Mover hacia abajo
-                        enemy.y += enemy.speed;
-                        if (enemy.y >= enemy.initialY + enemy.range) {
-                            enemy.dir = -1;
-                        }
-                    } else { // Mover hacia arriba
-                        enemy.y -= enemy.speed;
-                        if (enemy.y <= enemy.initialY - enemy.range) {
-                            enemy.dir = 1;
-                        }
-                    }
-                }
-                // Spikers son estáticos, no necesitan lógica de movimiento aquí
-            });
-
-            // 8. Detección de Colisión Jugador-Enemigo
-            if (!player.invincible) {
-                currentLevelData.enemies.forEach((enemy, index) => {
-                    if (checkCollision(player, enemy)) {
-                        if (player.velocityY > 0 && player.y + player.height - player.velocityY <= enemy.y && enemy.type !== 'spiker') {
-                            // Jugador salta sobre el enemigo (aplastar)
-                            updateScore(100);
-                            currentLevelData.enemies.splice(index, 1);
-                            player.velocityY = -7; // Pequeño rebote
-                            player.isJumping = true;
-                        } else {
-                            // Jugador es golpeado
-                            takeDamage();
-                        }
-                    }
-                });
-            } else {
-                player.invincibilityTimer--;
-                if (player.invincibilityTimer <= 0) {
-                    player.invincible = false;
-                }
-            }
-
-            // 9. Colisiones de Proyectiles con Enemigos
-            gameProjectiles.forEach((proj, projIndex) => {
-                currentLevelData.enemies.forEach((enemy, enemyIndex) => {
-                    if (checkCollision(proj, enemy) && enemy.type !== 'spiker') { // Proyectiles no afectan Spikers
-                        updateScore(150);
-                        gameProjectiles.splice(projIndex, 1);
-                        currentLevelData.enemies.splice(enemyIndex, 1);
-                    }
-                });
-            });
-
-            // 10. Colisiones con Obstáculos
-            currentLevelData.obstacles.forEach(obstacle => {
-                // Pinchos móviles
-                if (obstacle.type === 'spike' && obstacle.moving) {
-                    if (obstacle.dir === 1) { // Subir
-                        obstacle.y -= obstacle.speed;
-                        if (obstacle.y <= obstacle.maxY) {
-                            obstacle.dir = -1;
-                        }
-                    } else { // Bajar
-                        obstacle.y += obstacle.speed;
-                        if (obstacle.y >= obstacle.initialY) {
-                            obstacle.dir = 1;
-                        }
-                    }
-                }
-                // Plantas torreta
-                if (obstacle.type === 'turretPlant') {
-                    obstacle.shootTimer++;
-                    if (obstacle.shootTimer >= obstacle.shootInterval) {
-                        gameProjectiles.push({
-                            x: obstacle.x + obstacle.width / 2,
-                            y: obstacle.y - 10, // Dispara desde arriba
-                            width: 8,
-                            height: 8,
-                            color: 'firebrick',
-                            speed: 5,
-                            dir: (player.x < obstacle.x) ? -1 : 1, // Dispara hacia el jugador
-                            isEnemyProjectile: true // Marca como proyectil enemigo
-                        });
-                        obstacle.shootTimer = 0;
-                    }
-                }
-
-                if (checkCollision(player, obstacle) && !player.invincible) {
-                    if (obstacle.type === 'spike') {
-                        takeDamage();
-                    }
-                }
-            });
-
-            // 11. Colisiones de Proyectiles Enemigos con Jugador
-            gameProjectiles.forEach((proj, index) => {
-                if (proj.isEnemyProjectile && checkCollision(player, proj) && !player.invincible) {
-                    takeDamage();
-                    gameProjectiles.splice(index, 1); // Remover proyectil después de golpear
-                }
-            });
-
-
-            // 12. Colisiones con Power-ups
-            currentLevelData.powerUps.forEach((powerUp, index) => {
-                if (checkCollision(player, powerUp)) {
-                    if (powerUp.type === 'score') {
-                        updateScore(50);
-                    } else if (powerUp.type === 'extraLife') {
-                        updateLives(1);
-                    } else if (powerUp.type === 'fireFlower') {
-                        player.hasFirePower = true;
-                        player.color = 'blue'; // Cambia de color al obtener poder
-                    }
-                    currentLevelData.powerUps.splice(index, 1); // Eliminar power-up
-                }
-            });
-
-            // 13. Colisión con la Salida
-            if (checkCollision(player, currentLevelData.exit)) {
-                currentLevelIndex++;
-                updateScore(500); // Bonificación por nivel
-                loadLevel(currentLevelIndex); // Intentar cargar el siguiente nivel
-            }
-        }
-
-        // --- Dibujar Elementos del Juego ---
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar el canvas
-
-            // Dibujar suelo y plataformas
-            currentLevelData.platforms.forEach(platform => {
-                if (platform.exists !== false) { // Solo dibuja si existe
-                    ctx.fillStyle = platform.color;
-                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
-                }
-            });
-
-            // Dibujar Jugador
-            ctx.fillStyle = player.invincible ? 'rgba(255, 0, 0, 0.5)' : player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-
-            // Dibujar Enemigos
-            currentLevelData.enemies.forEach(enemy => {
-                ctx.fillStyle = enemy.color;
-                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
-            });
-
-            // Dibujar Obstáculos
-            currentLevelData.obstacles.forEach(obstacle => {
-                ctx.fillStyle = obstacle.color;
-                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-            });
-
-            // Dibujar Power-ups
-            currentLevelData.powerUps.forEach(powerUp => {
-                ctx.fillStyle = powerUp.color;
-                ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
-            });
-
-            // Dibujar Salida
-            ctx.fillStyle = currentLevelData.exit.color;
-            ctx.fillRect(currentLevelData.exit.x, currentLevelData.exit.y, currentLevelData.exit.width, currentLevelData.exit.height);
-
-            // Dibujar Proyectiles
-            gameProjectiles.forEach(proj => {
-                ctx.fillStyle = proj.color;
-                ctx.fillRect(proj.x, proj.y, proj.width, proj.height);
-            });
-        }
-
-        // --- Funciones Auxiliares ---
-
-        // Función de detección de colisiones AABB (Axis-Aligned Bounding Box)
-        function checkCollision(obj1, obj2) {
-            return obj1.x < obj2.x + obj2.width &&
-                   obj1.x + obj1.width > obj2.x &&
-                   obj1.y < obj2.y + obj2.height &&
-                   obj1.y + obj1.height > obj2.y;
-        }
-
-        function updateScore(points) {
-            score += points;
-            scoreDisplay.textContent = score;
-        }
-
-        function updateLives(change) {
-            lives += change;
-            livesDisplay.textContent = lives;
-            if (lives <= 0) {
-                showGameOver(false);
-            }
-        }
-
-        function takeDamage() {
-            player.invincible = true;
-            player.invincibilityTimer = player.maxInvincibilityTime;
-            updateLives(-1);
-            if (player.hasFirePower) { // Pierde el poder si es golpeado
-                player.hasFirePower = false;
-                player.color = 'red';
-            }
-            // Puedes agregar sonido o efecto visual aquí
-        }
-
-        function showGameOver(won = false) {
-            gameRunning = false;
-            finalScoreDisplay.textContent = score;
-            gameOverTitle.textContent = won ? '¡Juego Completado!' : '¡Juego Terminado!';
-            gameOverScreen.classList.remove('hidden');
-        }
-
-        function restartGame() {
-            score = 0;
-            lives = 3;
-            currentLevelIndex = 0;
-            player.hasFirePower = false; // Resetear poderes al reiniciar
-            player.color = 'red';
-            updateScore(0);
-            updateLives(0);
-            gameOverScreen.classList.add('hidden');
-            gameRunning = true;
-            loadLevel(currentLevelIndex);
-            gameLoop();
-        }
-
-        // --- Event Listeners para el Teclado ---
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-                keys.right = true;
-            } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-                keys.left = true;
-            } else if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-                keys.space = true;
-            } else if (e.code === 'KeyF' && player.hasFirePower) { // Tecla F para disparar
-                keys.fire = true;
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (e.code === 'ArrowRight' || e.code === 'KeyD') {
-                keys.right = false;
-            } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
-                keys.left = false;
-            } else if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
-                keys.space = false;
-            } else if (e.code === 'KeyF') {
-                keys.fire = false;
-            }
-        });
-
-        restartButton.addEventListener('click', restartGame);
-
-        // --- Iniciar el Juego ---
-        loadLevel(currentLevelIndex);
-        gameLoop();
-    </script>
-</body>
-</html>
+            if (player.x + player.width > canvas.width) player.x = canvas.width
