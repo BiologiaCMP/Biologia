@@ -1,10 +1,6 @@
-These changes:
-1. Add 3-level progression system
-2. Add lives system
-3. Add dangerous spike obstacles in higher levels 
-4. Increase enemy count in higher levels
-5. Improve win/lose handling
-6. Make the game progressively more challengingHere is the updated HTML content after applying above edits:
+Entendido. Aquí tienes el código completo del juego "Jumpy Journey" empaquetado en un **único archivo HTML**. Solo tienes que copiar y pegar todo este contenido en un archivo llamado `index.html` y abrirlo con tu navegador.
+
+-----
 
 ```html
 <!DOCTYPE html>
@@ -12,552 +8,485 @@ These changes:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pixel Quest Adventure</title>
+    <title>Jumpy Journey</title>
     <style>
+        /* Estilos del Juego (CSS Integrado) */
         body {
+            font-family: 'Press Start 2P', cursive; /* Ideal para juegos retro */
+            /* Importa fuente si no está localmente. Para fines de este archivo único, la eliminamos si no está instalada. */
+            /* Si quieres la fuente, agrega esta línea después de la font-family: */
+            /* @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); */
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #2c3e50; /* Un color oscuro y agradable */
+            color: #ecf0f1; /* Color de texto claro */
             margin: 0;
-            overflow: hidden;
-            background-color: #87CEEB;
-            font-family: 'Arial', sans-serif;
+            overflow: hidden; /* Evita barras de desplazamiento */
         }
+
         #game-container {
-            position: relative;
-            width: 800px;
-            height: 400px;
-            margin: 20px auto;
-            background: linear-gradient(to bottom, #87CEEB 60%, #5B9A4B);
-            overflow: hidden;
-            border: 4px solid #333;
-        }
-        #player {
-            position: absolute;
-            width: 40px;
-            height: 60px;
-            background-color: #FF5555;
-            border-radius: 10px 10px 0 0;
-            z-index: 10;
-        }
-        .platform {
-            position: absolute;
-            background-color: #8B4513;
-            z-index: 5;
-        }
-        .coin {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            background-color: gold;
-            border-radius: 50%;
-            z-index: 8;
-            animation: spin 2s linear infinite;
-        }
-        .enemy {
-            position: absolute;
-            width: 40px;
-            height: 40px;
-            background-color: #993333;
-            border-radius: 50%;
-            z-index: 7;
-        }
-        .spike {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background-color: #555;
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-            z-index: 6;
-        }
-        .spike {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background-color: #555;
-            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
-            z-index: 6;
-        }
-        #score-display {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 20px;
-            color: white;
-            text-shadow: 2px 2px 4px #000;
-        }
-        #controls {
+            background-color: #34495e; /* Fondo del contenedor del juego */
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
             text-align: center;
-            margin-top: 10px;
         }
-        button {
-            padding: 8px 15px;
-            margin: 0 5px;
-            font-size: 16px;
+
+        h1 {
+            color: #f1c40f; /* Color llamativo para el título */
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        canvas {
+            border: 3px solid #f1c40f; /* Borde del canvas */
+            background-color: #7fd4e7; /* Fondo del cielo */
+            display: block; /* Elimina espacios extra debajo del canvas */
+            margin: 0 auto;
+        }
+
+        #game-info {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 30px; /* Espacio entre puntos y vidas */
+            font-size: 1.1em;
+            color: #bdc3c7;
+        }
+
+        #game-over-screen {
+            position: fixed; /* Usar fixed para que cubra toda la ventana */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #ecf0f1;
+            text-align: center;
+            font-size: 1.5em;
+            z-index: 100; /* Asegura que esté por encima de todo */
+        }
+
+        #game-over-screen h2 {
+            color: #e74c3c; /* Rojo para el título de Game Over */
+            margin-bottom: 20px;
+        }
+
+        #restart-button {
+            background-color: #27ae60; /* Verde para el botón */
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
+            font-size: 1em;
+            margin-top: 20px;
+            transition: background-color 0.3s ease;
         }
-        @keyframes spin {
-            0% { transform: scale(1.1); }
-            50% { transform: scale(0.9); }
-            100% { transform: scale(1.1); }
+
+        #restart-button:hover {
+            background-color: #2ecc71;
         }
-        #power-up {
-            position: absolute;
-            width: 30px;
-            height: 30px;
-            background-color: #00AAFF;
-            border-radius: 50%;
-            z-index: 8;
-            animation: float 3s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-        #message {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 24px;
-            color: white;
-            text-shadow: 3px 3px 6px #000;
-            text-align: center;
-            display: none;
-            z-index: 20;
+
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <div id="player"></div>
-        <div id="score-display">Puntos: 0</div>
-        <div id="message">¡Pulsa START para jugar!</div>
-    </div>
-    <div id="controls">
-        <button id="start-btn">START</button>
+        <h1>Jumpy Journey</h1>
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <div id="game-info">
+            <p>Puntos: <span id="score">0</span></p>
+            <p>Vidas: <span id="lives">3</span></p>
+        </div>
+        <div id="game-over-screen" class="hidden">
+            <h2>¡Juego Terminado!</h2>
+            <p>Puntuación Final: <span id="final-score">0</span></p>
+            <button id="restart-button">Jugar de Nuevo</button>
+        </div>
     </div>
 
     <script>
-        // Configuración del juego
-        const game = {
-            currentLevel: 1,
-            maxLevels: 3,
-            player: {
-                x: 50,
-                y: 300,
-                width: 40,
-                height: 60,
-                speed: 5,
-                jumpPower: 12,
-                isJumping: false,
-                gravity: 0.5,
-                velocityY: 0,
-                hasPowerUp: false
-            },
-            platforms: [],
-            coins: [],
-            enemies: [],
-            powerUps: [],
-            score: 0,
-            lives: 3,
-            isGameRunning: false,
-            keys: {
-                left: false,
-                right: false,
-                up: false
-            }
+        // Lógica del Juego (JavaScript Integrado)
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const scoreDisplay = document.getElementById('score');
+        const livesDisplay = document.getElementById('lives');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-button');
+
+        // --- Variables del Juego ---
+        let score = 0;
+        let lives = 3;
+        let gameRunning = true;
+        let level = 0; // Empieza en el nivel 0 (primer elemento del array levels)
+
+        const GRAVITY = 0.5;
+        const GROUND_LEVEL = canvas.height - 40; // Donde el suelo empieza
+        const TILE_SIZE = 40; // Tamaño base para elementos (ej. bloques, personajes)
+
+        // --- Jugador ---
+        const player = {
+            x: 50,
+            y: GROUND_LEVEL - TILE_SIZE,
+            width: TILE_SIZE,
+            height: TILE_SIZE,
+            color: 'red',
+            speed: 5,
+            velocityY: 0,
+            isJumping: false,
+            onGround: true,
+            invincible: false, // Para después de ser golpeado
+            invincibilityTimer: 0,
+            maxInvincibilityTime: 120 // Cuadros (2 segundos a 60 FPS)
         };
 
-        // Elementos del DOM
-        const gameContainer = document.getElementById('game-container');
-        const playerElement = document.getElementById('player');
-        const scoreDisplay = document.getElementById('score-display');
-        const startBtn = document.getElementById('start-btn');
-        const messageElement = document.getElementById('message');
+        // --- Array para Teclas Presionadas ---
+        const keys = {
+            right: false,
+            left: false,
+            space: false
+        };
 
-        // Inicializar el juego
-        function initGame() {
-            // Limpiar elementos existentes
-            document.querySelectorAll('.platform, .coin, .enemy, #power-up').forEach(el => el.remove());
-            game.platforms = [];
-            game.coins = [];
-            game.enemies = [];
-            game.powerUps = [];
-
-            // Resetear jugador
-            game.player = {
-                x: 50,
-                y: 300,
-                width: 40,
-                height: 60,
-                speed: 5,
-                jumpPower: 12,
-                isJumping: false,
-                gravity: 0.5,
-                velocityY: 0,
-                hasPowerUp: false
-            };
-            game.score = 0;
-            updateScore();
-
-            // Crear plataformas
-            createPlatform(0, 360, 800, 40); // Suelo
-            createPlatform(100, 280, 200, 20);
-            createPlatform(350, 220, 150, 20);
-            createPlatform(200, 150, 100, 20);
-            createPlatform(500, 280, 200, 20);
-            createPlatform(700, 180, 100, 20);
-
-            // Crear monedas
-            for (let i = 0; i < 10; i++) {
-                createCoin(150 + i * 40, 240);
+        // --- Niveles (Definición de plataformas, enemigos, etc.) ---
+        const levels = [
+            // Nivel 0 (Nivel 1 del juego)
+            {
+                platforms: [
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: 'green' }, // Suelo principal
+                    { x: 200, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 3, height: TILE_SIZE, color: 'brown' },
+                    { x: 500, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE * 2, height: TILE_SIZE, color: 'brown' }
+                ],
+                enemies: [
+                    { x: 300, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, color: 'purple', speed: 2, type: 'goomber', dir: 1 },
+                    { x: 600, y: GROUND_LEVEL - TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE, color: 'purple', speed: 2, type: 'goomber', dir: -1 }
+                ],
+                obstacles: [
+                    { x: 400, y: GROUND_LEVEL - 20, width: TILE_SIZE, height: 20, color: 'gray', type: 'spike' }
+                ],
+                powerUps: [
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: 20, height: 20, color: 'yellow', type: 'score' },
+                    { x: 550, y: GROUND_LEVEL - TILE_SIZE * 4, width: 20, height: 20, color: 'blue', type: 'extraLife' }
+                ],
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
+            },
+            // Nivel 1 (Nivel 2 del juego)
+            {
+                platforms: [
+                    { x: 0, y: GROUND_LEVEL, width: canvas.width, height: TILE_SIZE, color: 'darkgreen' },
+                    { x: 100, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, color: 'darkbrown' },
+                    { x: 300, y: GROUND_LEVEL - TILE_SIZE * 4, width: TILE_SIZE * 3, height: TILE_SIZE, color: 'darkbrown' },
+                    { x: 600, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE * 2, height: TILE_SIZE, color: 'darkbrown' }
+                ],
+                enemies: [
+                    { x: 150, y: GROUND_LEVEL - TILE_SIZE * 3, width: TILE_SIZE, height: TILE_SIZE, color: 'darkpurple', speed: 3, type: 'goomber', dir: 1 },
+                    { x: 400, y: GROUND_LEVEL - TILE_SIZE * 5, width: TILE_SIZE, height: TILE_SIZE, color: 'orange', speed: 2, type: 'spiker' } // Nuevo enemigo
+                ],
+                obstacles: [
+                    { x: 250, y: GROUND_LEVEL - 20, width: TILE_SIZE * 2, height: 20, color: 'darkgray', type: 'spike' },
+                    { x: 550, y: GROUND_LEVEL - 20, width: TILE_SIZE * 1.5, height: 20, color: 'darkgray', type: 'spike' }
+                ],
+                powerUps: [
+                    { x: 350, y: GROUND_LEVEL - TILE_SIZE * 5, width: 20, height: 20, color: 'yellow', type: 'score' }
+                ],
+                exit: { x: canvas.width - TILE_SIZE * 2, y: GROUND_LEVEL - TILE_SIZE * 2, width: TILE_SIZE, height: TILE_SIZE, color: 'gold' }
             }
-            createCoin(400, 180);
-            createCoin(450, 180);
-            createCoin(250, 110);
-            createCoin(550, 240);
+            // Puedes agregar más niveles aquí siguiendo el mismo formato
+        ];
 
-            // Crear enemigos basado en nivel
-            if(game.currentLevel === 1) {
-                createEnemy(300, 320);
-                createEnemy(600, 240);
-                createEnemy(750, 140);
-            } else if(game.currentLevel === 2) {
-                createEnemy(200, 320);
-                createEnemy(400, 240);
-                createEnemy(600, 160);
-                createEnemy(700, 320);
-            } else {
-                createEnemy(150, 320);
-                createEnemy(250, 220);
-                createEnemy(350, 120);
-                createEnemy(550, 220);
-                createEnemy(700, 320);
+        let currentLevelData; // Se cargará al inicio de cada nivel
+
+        // --- Inicializar Nivel ---
+        function loadLevel(levelNum) {
+            if (levelNum >= levels.length) {
+                // Has completado todos los niveles
+                console.log("¡Felicidades, has completado el juego!");
+                showGameOver(true); // Puedes pasar un argumento para "victoria"
+                return;
+            }
+            currentLevelData = JSON.parse(JSON.stringify(levels[levelNum])); // Copia profunda para no modificar el original
+            player.x = 50;
+            player.y = GROUND_LEVEL - TILE_SIZE;
+            player.velocityY = 0;
+            player.isJumping = false;
+            player.onGround = true;
+            player.invincible = false;
+            player.invincibilityTimer = 0;
+        }
+
+        // --- Bucle Principal del Juego ---
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Actualizar Estado del Juego ---
+        function update() {
+            // 1. Movimiento del Jugador
+            if (keys.right) player.x += player.speed;
+            if (keys.left) player.x -= player.speed;
+
+            // Limitar movimiento dentro del canvas
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+            // 2. Gravedad
+            player.y += player.velocityY;
+            player.velocityY += GRAVITY;
+
+            // 3. Saltar
+            if (keys.space && player.onGround) {
+                player.velocityY = -10; // Fuerza de salto
+                player.isJumping = true;
+                player.onGround = false;
             }
 
-            // Crear power-up
-            createPowerUp(700, 130);
-            
-            // Crear spikes en niveles avanzados
-            if(game.currentLevel >= 2) {
-                createSpike(400, 360);
-            }
-            if(game.currentLevel === 3) {
-                createSpike(250, 280);
-                createSpike(600, 380);
-            }
-            
-            // Crear spikes en niveles avanzados
-            if(game.currentLevel >= 2) {
-                createSpike(400, 360);
-            }
-            if(game.currentLevel === 3) {
-                createSpike(250, 280);
-                createSpike(600, 380);
-            }
-
-            // Mostrar mensaje inicial
-            messageElement.textContent = "¡Pulsa START para jugar!";
-            messageElement.style.display = "block";
-            game.isGameRunning = false;
-        }
-
-        // Crear plataforma
-        function createPlatform(x, y, width, height) {
-            const platform = document.createElement('div');
-            platform.className = 'platform';
-            platform.style.left = x + 'px';
-            platform.style.top = y + 'px';
-            platform.style.width = width + 'px';
-            platform.style.height = height + 'px';
-            gameContainer.appendChild(platform);
-            
-            game.platforms.push({ element: platform, x, y, width, height });
-        }
-
-        // Crear moneda
-        function createCoin(x, y) {
-            const coin = document.createElement('div');
-            coin.className = 'coin';
-            coin.style.left = x + 'px';
-            coin.style.top = y + 'px';
-            gameContainer.appendChild(coin);
-            
-            game.coins.push({ element: coin, x, y });
-        }
-
-        // Crear enemigo
-        function createEnemy(x, y) {
-            const enemy = document.createElement('div');
-            enemy.className = 'enemy';
-            enemy.style.left = x + 'px';
-            enemy.style.top = y + 'px';
-            gameContainer.appendChild(enemy);
-            
-            // Añadir movimiento aleatorio a los enemigos
-            const direction = Math.random() > 0.5 ? 1 : -1;
-            const speed = 1 + Math.random() * 2;
-            
-            game.enemies.push({ 
-                element: enemy, 
-                x, 
-                y, 
-                direction,
-                speed,
-                originalX: x
-            });
-        }
-
-        // Crear spike
-        function createSpike(x, y) {
-            const spike = document.createElement('div');
-            spike.className = 'spike';
-            spike.style.left = x + 'px';
-            spike.style.top = y + 'px';
-            gameContainer.appendChild(spike);
-        }
-        
-        // Crear spike
-        function createSpike(x, y) {
-            const spike = document.createElement('div');
-            spike.className = 'spike';
-            spike.style.left = x + 'px';
-            spike.style.top = y + 'px';
-            gameContainer.appendChild(spike);
-        }
-        
-        // Crear power-up
-        function createPowerUp(x, y) {
-            const powerUp = document.createElement('div');
-            powerUp.id = 'power-up';
-            powerUp.style.left = x + 'px';
-            powerUp.style.top = y + 'px';
-            gameContainer.appendChild(powerUp);
-            
-            game.powerUps.push({ element: powerUp, x, y });
-        }
-
-        // Actualizar puntuación
-        function updateScore() {
-            scoreDisplay.textContent = `Puntos: ${game.score}`;
-        }
-
-        // Manejar colisiones con plataformas
-        function handlePlatformCollisions() {
-            let onGround = false;
-            
-            game.platforms.forEach(platform => {
-                // Colisión desde arriba (caída sobre plataforma)
-                if (game.player.x + game.player.width > platform.x &&
-                    game.player.x < platform.x + platform.width &&
-                    game.player.y + game.player.height >= platform.y &&
-                    game.player.y + game.player.height <= platform.y + 20 &&
-                    game.player.velocityY > 0) {
-                    
-                    game.player.y = platform.y - game.player.height;
-                    game.player.velocityY = 0;
-                    game.player.isJumping = false;
-                    onGround = true;
-                }
-            });
-            
-            // Aplicar gravedad si no está en una plataforma
-            if (!onGround) {
-                game.player.velocityY += game.player.gravity;
-                game.player.isJumping = true;
-            }
-        }
-
-        // Recolectar monedas
-        function collectCoins() {
-            game.coins = game.coins.filter(coin => {
-                // Verificar colisión con jugador
-                if (Math.abs(game.player.x + game.player.width/2 - (coin.x + 10)) < 25 &&
-                    Math.abs(game.player.y + game.player.height/2 - (coin.y + 10)) < 25) {
-                    
-                    // Eliminar moneda del DOM y sumar puntos
-                    coin.element.remove();
-                    game.score += 10;
-                    updateScore();
-                    return false;
-                }
-                return true;
-            });
-        }
-
-        // Manejar power-ups
-        function handlePowerUps() {
-            game.powerUps = game.powerUps.filter(powerUp => {
-                // Verificar colisión con jugador
-                if (Math.abs(game.player.x + game.player.width/2 - (powerUp.x + 15)) < 30 &&
-                    Math.abs(game.player.y + game.player.height/2 - (powerUp.y + 15)) < 30) {
-                    
-                    // Activar power-up
-                    powerUp.element.remove();
-                    game.player.hasPowerUp = true;
-                    game.player.width = 50;
-                    game.player.height = 70;
-                    playerElement.style.width = game.player.width + 'px';
-                    playerElement.style.height = game.player.height + 'px';
-                    playerElement.style.backgroundColor = '#FF9900';
-                    setTimeout(() => {
-                        game.player.hasPowerUp = false;
-                        game.player.width = 40;
-                        game.player.height = 60;
-                        playerElement.style.width = game.player.width + 'px';
-                        playerElement.style.height = game.player.height + 'px';
-                        playerElement.style.backgroundColor = '#FF5555';
-                    }, 10000);
-                    return false;
-                }
-                return true;
-            });
-        }
-
-        // Manejar enemigos
-        function handleEnemies() {
-            game.enemies.forEach(enemy => {
-                // Mover enemigo (patrón de ida y vuelta)
-                enemy.x += enemy.direction * enemy.speed;
-                
-                // Cambiar dirección si se aleja demasiado de su posición original
-                if (Math.abs(enemy.x - enemy.originalX) > 100) {
-                    enemy.direction *= -1;
-                }
-                
-                enemy.element.style.left = enemy.x + 'px';
-                
-                // Verificar colisión con jugador
-                if (Math.abs(game.player.x + game.player.width/2 - (enemy.x + 20)) < 30 &&
-                    Math.abs(game.player.y + game.player.height/2 - (enemy.y + 20)) < 40) {
-                    
-                    if (game.player.hasPowerUp) {
-                        // Eliminar enemigo si tiene power-up
-                        game.enemies = game.enemies.filter(e => e !== enemy);
-                        enemy.element.remove();
-                        game.score += 50;
-                        updateScore();
-                    } else if (game.player.y + game.player.height < enemy.y + 20) {
-                        // Saltar sobre el enemigo
-                        game.player.velocityY = -game.player.jumpPower * 0.8;
-                        game.enemies = game.enemies.filter(e => e !== enemy);
-                        enemy.element.remove();
-                        game.score += 30;
-                        updateScore();
-                    } else {
-                        // Perder vida o reiniciar
-                        gameOver();
+            // 4. Colisiones con Plataformas
+            player.onGround = false; // Asumir que no está en el suelo hasta que haya colisión
+            currentLevelData.platforms.forEach(platform => {
+                if (checkCollision(player, platform)) {
+                    // Si el jugador cae sobre la plataforma
+                    if (player.velocityY > 0 && player.y + player.height - player.velocityY <= platform.y) {
+                        player.y = platform.y - player.height;
+                        player.velocityY = 0;
+                        player.onGround = true;
+                        player.isJumping = false;
+                    }
+                    // Si el jugador golpea la plataforma desde abajo (opcional, para romper bloques)
+                    else if (player.velocityY < 0 && player.y >= platform.y + platform.height) {
+                        player.velocityY = 0; // Detiene el salto ascendente
                     }
                 }
             });
+
+            // Asegurarse de que el jugador no caiga por debajo del suelo
+            if (player.y + player.height > GROUND_LEVEL) {
+                player.y = GROUND_LEVEL - player.height;
+                player.velocityY = 0;
+                player.onGround = true;
+                player.isJumping = false;
+            }
+
+            // 5. Actualizar Enemigos
+            currentLevelData.enemies.forEach(enemy => {
+                if (enemy.type === 'goomber') {
+                    enemy.x += enemy.speed * enemy.dir;
+                    // Detección de borde para que los Goomber giren
+                    // Simplemente rebotan si llegan al borde del canvas por ahora
+                    if (enemy.x <= 0 || enemy.x + enemy.width >= canvas.width) {
+                        enemy.dir *= -1; // Cambiar dirección
+                    }
+                    // Simular caída sobre plataformas para enemigos
+                    let enemyOnPlatform = false;
+                    currentLevelData.platforms.forEach(platform => {
+                        // Chequear colisión con el punto bajo del enemigo para saber si está sobre una plataforma
+                        if (checkCollision({ x: enemy.x, y: enemy.y + enemy.height + 1, width: enemy.width, height: 1 }, platform)) {
+                            enemyOnPlatform = true;
+                            // Alinear el enemigo a la plataforma
+                            enemy.y = platform.y - enemy.height;
+                        }
+                    });
+                    // Si no está en una plataforma o en el suelo principal, aplicar gravedad
+                    if (!enemyOnPlatform && enemy.y + enemy.height < GROUND_LEVEL) {
+                         enemy.y += GRAVITY * 2; // Los enemigos también caen
+                    } else if (enemy.y + enemy.height > GROUND_LEVEL) {
+                        enemy.y = GROUND_LEVEL - enemy.height; // Alinear al suelo principal
+                    }
+                }
+                // Si quieres agregar enemigos de tipo 'spiker' que no se mueven, no necesitan esta lógica de movimiento.
+            });
+
+            // 6. Detección de Colisión Jugador-Enemigo
+            if (!player.invincible) {
+                currentLevelData.enemies.forEach((enemy, index) => {
+                    if (checkCollision(player, enemy)) {
+                        if (player.velocityY > 0 && player.y + player.height - player.velocityY <= enemy.y && enemy.type !== 'spiker') {
+                            // Jugador salta sobre el enemigo (aplastar)
+                            updateScore(100);
+                            // Eliminar enemigo
+                            currentLevelData.enemies.splice(index, 1);
+                            player.velocityY = -7; // Pequeño rebote al aplastar
+                            player.isJumping = true; // Forzar el salto para evitar doble aplastamiento
+                        } else {
+                            // Jugador es golpeado por el enemigo (excepto si es por arriba y lo aplasta)
+                            takeDamage();
+                        }
+                    }
+                });
+            } else {
+                player.invincibilityTimer--;
+                if (player.invincibilityTimer <= 0) {
+                    player.invincible = false;
+                }
+            }
+
+
+            // 7. Colisiones con Obstáculos
+            currentLevelData.obstacles.forEach(obstacle => {
+                if (checkCollision(player, obstacle)) {
+                    if (obstacle.type === 'spike' && !player.invincible) {
+                        takeDamage();
+                    }
+                }
+            });
+
+            // 8. Colisiones con Power-ups
+            currentLevelData.powerUps.forEach((powerUp, index) => {
+                if (checkCollision(player, powerUp)) {
+                    if (powerUp.type === 'score') {
+                        updateScore(50);
+                    } else if (powerUp.type === 'extraLife') {
+                        updateLives(1);
+                    }
+                    currentLevelData.powerUps.splice(index, 1); // Eliminar power-up
+                }
+            });
+
+            // 9. Colisión con la Salida
+            if (checkCollision(player, currentLevelData.exit)) {
+                level++;
+                updateScore(500); // Bonificación por nivel
+                loadLevel(level); // Intentar cargar el siguiente nivel
+                if (gameRunning) { // Asegúrate de que el juego no haya terminado por completar todos los niveles
+                    console.log(`¡Nivel ${level + 1} Completado!`); // Mostrar número de nivel correcto
+                }
+            }
         }
 
-        // Verificar si el jugador cayó del nivel
-        function checkPlayerBounds() {
-            if (game.player.y > gameContainer.clientHeight) {
+        // --- Dibujar Elementos del Juego ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar el canvas
+
+            // Dibujar suelo y plataformas
+            currentLevelData.platforms.forEach(platform => {
+                ctx.fillStyle = platform.color;
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            });
+
+            // Dibujar Jugador
+            ctx.fillStyle = player.invincible ? 'rgba(255, 0, 0, 0.5)' : player.color; // Color intermitente si es invencible
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Dibujar Enemigos
+            currentLevelData.enemies.forEach(enemy => {
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+            });
+
+            // Dibujar Obstáculos
+            currentLevelData.obstacles.forEach(obstacle => {
+                ctx.fillStyle = obstacle.color;
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+            });
+
+            // Dibujar Power-ups
+            currentLevelData.powerUps.forEach(powerUp => {
+                ctx.fillStyle = powerUp.color;
+                ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+            });
+
+            // Dibujar Salida
+            ctx.fillStyle = currentLevelData.exit.color;
+            ctx.fillRect(currentLevelData.exit.x, currentLevelData.exit.y, currentLevelData.exit.width, currentLevelData.exit.height);
+        }
+
+        // --- Funciones Auxiliares ---
+
+        // Función de detección de colisiones AABB (Axis-Aligned Bounding Box)
+        function checkCollision(obj1, obj2) {
+            return obj1.x < obj2.x + obj2.width &&
+                   obj1.x + obj1.width > obj2.x &&
+                   obj1.y < obj2.y + obj2.height &&
+                   obj1.y + obj1.height > obj2.y;
+        }
+
+        function updateScore(points) {
+            score += points;
+            scoreDisplay.textContent = score;
+        }
+
+        function updateLives(change) {
+            lives += change;
+            livesDisplay.textContent = lives;
+            if (lives <= 0) {
                 gameOver();
             }
         }
 
-        // Verificar si ganó (recolectó todas las monedas)
-        function checkWinCondition() {
-            if (game.coins.length === 0) {
-                if(game.currentLevel < game.maxLevels) {
-                    game.currentLevel++;
-                    messageElement.textContent = "¡Nivel " + game.currentLevel + "! Preparado...";
-                    setTimeout(() => {
-                        messageElement.style.display = "none";
-                        initGame();
-                    }, 2000);
-                } else {
-                    messageElement.textContent = "¡GANASTE TODOS LOS NIVELES! Puntos: " + game.score;
-                    game.isGameRunning = false;
-                }
-                messageElement.style.display = "block";
-            }
+        function takeDamage() {
+            player.invincible = true;
+            player.invincibilityTimer = player.maxInvincibilityTime;
+            updateLives(-1);
+            // Puedes agregar sonido o efecto visual aquí
         }
 
-        // Game over
         function gameOver() {
-            game.lives--;
-            if(game.lives > 0) {
-                messageElement.textContent = "¡Perdiste una vida! Vidas restantes: " + game.lives;
-                setTimeout(() => {
-                    messageElement.style.display = "none";
-                    initGame();
-                }, 1500);
-            } else {
-                messageElement.textContent = "GAME OVER - Puntos: " + game.score;
-                game.isGameRunning = false;
-            }
-            messageElement.style.display = "block";
+            gameRunning = false;
+            finalScoreDisplay.textContent = score;
+            gameOverScreen.classList.remove('hidden');
         }
 
-        // Actualizar posición del jugador
-        function updatePlayerPosition() {
-            // Movimiento horizontal
-            if (game.keys.left) {
-                game.player.x -= game.player.speed;
-                if (game.player.x < 0) game.player.x = 0;
-            }
-            if (game.keys.right) {
-                game.player.x += game.player.speed;
-                if (game.player.x + game.player.width > gameContainer.clientWidth) {
-                    game.player.x = gameContainer.clientWidth - game.player.width;
-                }
-            }
-            
-            // Salto
-            if (game.keys.up && !game.player.isJumping) {
-                game.player.velocityY = -game.player.jumpPower;
-                game.player.isJumping = true;
-            }
-            
-            // Movimiento vertical
-            game.player.y += game.player.velocityY;
-            
-            // Aplicar límites
-            playerElement.style.left = game.player.x + 'px';
-            playerElement.style.top = game.player.y + 'px';
+        function showGameOver(won = false) {
+             gameRunning = false;
+             finalScoreDisplay.textContent = score;
+             gameOverScreen.querySelector('h2').textContent = won ? '¡Juego Completado!' : '¡Juego Terminado!';
+             gameOverScreen.classList.remove('hidden');
         }
 
-        // Bucle del juego
-        function gameLoop() {
-            if (!game.isGameRunning) return;
-            
-            updatePlayerPosition();
-            handlePlatformCollisions();
-            collectCoins();
-            handlePowerUps();
-            handleEnemies();
-            checkPlayerBounds();
-            checkWinCondition();
-            
-            requestAnimationFrame(gameLoop);
+        function restartGame() {
+            score = 0;
+            lives = 3;
+            level = 0; // Reiniciar al primer nivel
+            updateScore(0); // Para actualizar el display
+            updateLives(0); // Para actualizar el display
+            gameOverScreen.classList.add('hidden');
+            gameRunning = true;
+            loadLevel(level);
+            gameLoop();
         }
 
-        // Event listeners para teclado
+        // --- Event Listeners para el Teclado ---
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') game.keys.left = true;
-            if (e.key === 'ArrowRight' || e.key === 'd') game.keys.right = true;
-            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') game.keys.up = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+                keys.right = true;
+            } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+                keys.left = true;
+            } else if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                keys.space = true;
+            }
         });
 
         document.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'a') game.keys.left = false;
-            if (e.key === 'ArrowRight' || e.key === 'd') game.keys.right = false;
-            if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') game.keys.up = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+                keys.right = false;
+            } else if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+                keys.left = false;
+            } else if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                keys.space = false;
+            }
         });
 
-        // Botón de inicio
-        startBtn.addEventListener('click', () => {
-            initGame();
-            messageElement.style.display = "none";
-            game.isGameRunning = true;
-            gameLoop();
-        });
+        restartButton.addEventListener('click', restartGame);
 
-        // Inicializar el juego al cargar
-        initGame();
+        // --- Iniciar el Juego ---
+        loadLevel(level);
+        gameLoop();
     </script>
 </body>
 </html>
-``` --- End of CSV data ---
+```
