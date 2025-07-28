@@ -191,27 +191,28 @@
         // --- Assets de Imágenes ---
         const images = {};
         const imageSources = {
-            player: 'https://i.ibb.co/L5w2R0Z/player-sprite.png', // Ejemplo de jugador pixel art
-            playerFire: 'https://i.ibb.co/S6y4t02/player-fire-sprite.png', // Jugador con poder de fuego
-            goomber: 'https://i.ibb.co/hV41FjP/mushroom-enemy.png', // Enemigo tipo Goomba
-            spiker: 'https://i.ibb.co/Qn3241R/spike-enemy.png', // Enemigo tipo Spiker (estático)
-            flutterby: 'https://i.ibb.co/s613qf0/flying-enemy.png', // Enemigo volador
-            turretPlant: 'https://i.ibb.co/yQ30W1N/plant-turret.png', // Planta torreta
-            spikeTrap: 'https://i.ibb.co/zX5Y77N/spike-trap.png', // Trampa de pinchos
-            platform: 'https://i.ibb.co/qF41P42/grass-platform.png', // Plataforma de tierra/hierba
-            crumblingPlatform: 'https://i.ibb.co/F820Y1R/crumbling-platform.png', // Plataforma que se rompe
-            backgroundForest: 'https://i.ibb.co/yQ20W1N/forest-bg.png', // Fondo de bosque
-            backgroundCave: 'https://i.ibb.co/Qn3241R/cave-bg.png', // Fondo de cueva
-            backgroundLava: 'https://i.ibb.co/L5w2R0Z/lava-bg.png', // Fondo de lava (para el jefe)
-            coin: 'https://i.ibb.co/hV41FjP/coin.png', // Moneda
-            heart: 'https://i.ibb.co/Qn3241R/heart.png', // Vida extra
-            fireFlower: 'https://i.ibb.co/zX5Y77N/fire-flower.png', // Flor de fuego
-            exitFlag: 'https://i.ibb.co/L5w2R0Z/flag-pole.png', // Bandera de salida
-            playerFireball: 'https://i.ibb.co/S6y4t02/fireball.png', // Proyectil del jugador
-            enemyProjectile: 'https://i.ibb.co/hV41FjP/enemy-projectile.png', // Proyectil del enemigo
-            boss: 'https://i.ibb.co/Qn3241R/boss-monster.png', // Jefe final
-            bossProjectile: 'https://i.ibb.co/zX5Y77N/boss-projectile.png' // Proyectil del jefe
+            player: 'https://i.imgur.com/gK9p5M9.png', // Nuevo jugador (personaje con gorra y overol azul)
+            playerFire: 'https://i.imgur.com/gK9p5M9.png', // Mismo jugador para fuego (podrías tener una versión con animación de fuego)
+            goomber: 'https://i.imgur.com/S6e1lqC.png', // Nuevo enemigo tipo Goomba (champiñón)
+            spiker: 'https://i.imgur.com/1mX1r6d.png', // Nuevo enemigo tipo Spiker (erizo con pinchos)
+            flutterby: 'https://i.imgur.com/X5vH3kF.png', // Nuevo enemigo volador (mariposa/libélula)
+            turretPlant: 'https://i.imgur.com/9C7C8wP.png', // Nueva planta torreta (planta carnívora)
+            spikeTrap: 'https://i.imgur.com/k2gC14Z.png', // Nueva trampa de pinchos
+            platform: 'https://i.imgur.com/R3pS4qT.png', // Nueva plataforma de tierra/hierba
+            crumblingPlatform: 'https://i.imgur.com/vH1N2vF.png', // Nueva plataforma que se rompe
+            backgroundForest: 'https://i.imgur.com/6X7p3cE.png', // Nuevo fondo de bosque
+            backgroundCave: 'https://i.imgur.com/sW4Y2gN.png', // Nuevo fondo de cueva
+            backgroundLava: 'https://i.imgur.com/0F8r9zC.png', // Nuevo fondo de lava
+            coin: 'https://i.imgur.com/J3qW4qR.png', // Nueva moneda
+            heart: 'https://i.imgur.com/w2Yg8qQ.png', // Nueva vida extra (corazón)
+            fireFlower: 'https://i.imgur.com/Z4w0X0F.png', // Nueva flor de fuego
+            exitFlag: 'https://i.imgur.com/cQ0L7uY.png', // Nueva bandera de salida
+            playerFireball: 'https://i.imgur.com/Q7u1e1O.png', // Nuevo proyectil del jugador (bola de fuego)
+            enemyProjectile: 'https://i.imgur.com/D8k1F2R.png', // Nuevo proyectil del enemigo
+            boss: 'https://i.imgur.com/e2o8m7C.png', // Nuevo jefe final (dragón)
+            bossProjectile: 'https://i.imgur.com/e9w0h2X.png' // Nuevo proyectil del jefe (aliento de fuego)
         };
+
 
         let loadedImagesCount = 0;
         const totalImages = Object.keys(imageSources).length;
@@ -498,4 +499,433 @@
 
             // Limitar movimiento dentro del canvas
             if (player.x < 0) player.x = 0;
-            if (player.x + player.width > canvas.width) player.x = canvas.width
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+            // Aplicar gravedad
+            player.velocityY += GRAVITY;
+            player.y += player.velocityY;
+
+            // Reiniciar onGround
+            player.onGround = false;
+
+            // Colisión con el suelo (borde inferior del canvas)
+            if (player.y + player.height > GROUND_LEVEL) {
+                player.y = GROUND_LEVEL - player.height;
+                player.velocityY = 0;
+                player.isJumping = false;
+                player.onGround = true;
+            }
+
+            // Colisión con plataformas
+            currentLevelData.platforms.forEach(platform => {
+                // Si el jugador está cayendo y colisiona con la parte superior de una plataforma
+                if (player.velocityY >= 0 &&
+                    player.x < platform.x + platform.width &&
+                    player.x + player.width > platform.x &&
+                    player.y + player.height <= platform.y + player.velocityY && // La línea inferior del jugador está encima o al nivel de la parte superior de la plataforma
+                    player.y + player.height + player.velocityY > platform.y) { // Y la próxima posición del jugador estará por debajo de la parte superior de la plataforma
+                    player.y = platform.y - player.height;
+                    player.velocityY = 0;
+                    player.isJumping = false;
+                    player.onGround = true;
+
+                    if (platform.type === 'crumbling' && !platform.crumbled) {
+                        platform.crumbleTimer = platform.crumbleTimer || 0;
+                        platform.crumbleTimer++;
+                        if (platform.crumbleTimer > 30) { // 0.5 segundos (30 cuadros) antes de que se rompa
+                            platform.crumbled = true;
+                            // Opcional: Eliminar la plataforma después de un tiempo si se desea
+                            setTimeout(() => {
+                                const index = currentLevelData.platforms.indexOf(platform);
+                                if (index > -1) {
+                                    currentLevelData.platforms.splice(index, 1);
+                                }
+                            }, 500); // Se elimina 0.5 segundos después de romperse visualmente
+                        }
+                    }
+                }
+            });
+
+            // Salto
+            if (keys.space && player.onGround && !player.isJumping) {
+                player.velocityY = -10; // Fuerza de salto
+                player.isJumping = true;
+                player.onGround = false; // Ya no está en el suelo una vez que salta
+            }
+
+            // Disparo
+            if (keys.fire && player.hasFirePower && keys.canFire) {
+                player.projectiles.push({
+                    x: player.x + player.width / 2,
+                    y: player.y + player.height / 2,
+                    width: 10,
+                    height: 10,
+                    speed: 8,
+                    dir: keys.right ? 1 : (keys.left ? -1 : 1) // Dispara en la dirección en la que mira o por defecto a la derecha
+                });
+                keys.canFire = false;
+                setTimeout(() => {
+                    keys.canFire = true;
+                }, 300); // Cooldown de disparo (0.3 segundos)
+            }
+
+            // Actualizar proyectiles del jugador
+            player.projectiles.forEach((p, index) => {
+                p.x += p.speed * p.dir;
+                if (p.x < 0 || p.x > canvas.width) {
+                    player.projectiles.splice(index, 1);
+                }
+            });
+
+            // Manejar invencibilidad del jugador
+            if (player.invincible) {
+                player.invincibilityTimer++;
+                if (player.invincibilityTimer >= player.maxInvincibilityTime) {
+                    player.invincible = false;
+                    player.invincibilityTimer = 0;
+                }
+            }
+
+            // 2. Movimiento y Lógica de Enemigos
+            currentLevelData.enemies.forEach(enemy => {
+                if (enemy.type === 'goomber') {
+                    enemy.x += enemy.speed * enemy.dir;
+                    // Cambiar dirección si alcanza los límites de su rango de movimiento
+                    if (enemy.x > enemy.initialX + enemy.moveRange || enemy.x < enemy.initialX - enemy.moveRange) {
+                        enemy.dir *= -1;
+                    }
+                } else if (enemy.type === 'flutterby') {
+                    enemy.y += enemy.speed * enemy.dir;
+                    if (enemy.y > enemy.initialY + enemy.range || enemy.y < enemy.initialY - enemy.range) {
+                        enemy.dir *= -1;
+                    }
+                }
+            });
+
+            // Actualizar obstáculos (trampas móviles y torretas)
+            currentLevelData.obstacles.forEach(obstacle => {
+                if (obstacle.type === 'spike' && obstacle.moving) {
+                    obstacle.y += obstacle.speed * obstacle.dir;
+                    if (obstacle.y > obstacle.maxY || obstacle.y < obstacle.initialY) {
+                        obstacle.dir *= -1;
+                    }
+                } else if (obstacle.type === 'turretPlant') {
+                    obstacle.shootTimer++;
+                    if (obstacle.shootTimer >= obstacle.shootInterval) {
+                        gameProjectiles.push({
+                            x: obstacle.x + obstacle.width / 2,
+                            y: obstacle.y + obstacle.height / 2,
+                            width: 15,
+                            height: 15,
+                            speed: 5,
+                            dir: (player.x < obstacle.x) ? -1 : 1, // Dispara hacia el jugador
+                            isEnemyProjectile: true
+                        });
+                        obstacle.shootTimer = 0;
+                    }
+                }
+            });
+
+            // Actualizar proyectiles del juego (enemigos)
+            gameProjectiles.forEach((p, index) => {
+                p.x += p.speed * p.dir;
+                if (p.x < 0 || p.x > canvas.width) {
+                    gameProjectiles.splice(index, 1);
+                }
+            });
+
+            // 3. Colisiones
+            // Colisión Jugador-Enemigo/Obstáculo
+            currentLevelData.enemies.forEach(enemy => {
+                if (!player.invincible && checkCollision(player, enemy)) {
+                    if (player.velocityY > 0 && player.y + player.height - player.velocityY <= enemy.y + 10) { // Si el jugador cae sobre el enemigo
+                        score += 100;
+                        enemy.x = -100; // Mover enemigo fuera de pantalla para "eliminarlo"
+                        player.velocityY = -7; // Pequeño rebote
+                    } else {
+                        lives--;
+                        livesDisplay.textContent = lives;
+                        player.invincible = true;
+                        player.invincibilityTimer = 0;
+                        if (lives <= 0) {
+                            showGameOver(false);
+                        }
+                    }
+                }
+            });
+
+            currentLevelData.obstacles.forEach(obstacle => {
+                if (!player.invincible && obstacle.type === 'spike' && checkCollision(player, obstacle)) {
+                    lives--;
+                    livesDisplay.textContent = lives;
+                    player.invincible = true;
+                    player.invincibilityTimer = 0;
+                    if (lives <= 0) {
+                        showGameOver(false);
+                    }
+                }
+            });
+
+            // Colisión Jugador-Proyectil Enemigo
+            gameProjectiles.forEach((p, index) => {
+                if (p.isEnemyProjectile && !player.invincible && checkCollision(player, p)) {
+                    lives--;
+                    livesDisplay.textContent = lives;
+                    player.invincible = true;
+                    player.invincibilityTimer = 0;
+                    gameProjectiles.splice(index, 1); // Eliminar proyectil
+                    if (lives <= 0) {
+                        showGameOver(false);
+                    }
+                }
+            });
+
+            // Colisión Proyectil Jugador-Enemigo
+            player.projectiles.forEach((proj, projIndex) => {
+                currentLevelData.enemies.forEach((enemy, enemyIndex) => {
+                    if (checkCollision(proj, enemy) && enemy.type !== 'spiker') { // Spiker no es afectado por proyectiles (solo si decides esto)
+                        score += 100;
+                        currentLevelData.enemies.splice(enemyIndex, 1); // Eliminar enemigo
+                        player.projectiles.splice(projIndex, 1); // Eliminar proyectil
+                    }
+                });
+
+                // Colisión Proyectil Jugador-Jefe
+                if (boss.active && checkCollision(proj, boss)) {
+                    boss.health -= 50; // Daño al jefe
+                    updateBossHealthBar();
+                    player.projectiles.splice(projIndex, 1); // Eliminar proyectil
+
+                    if (boss.health <= 0) {
+                        score += 5000; // Puntos extra por derrotar al jefe
+                        boss.active = false;
+                        showGameOver(true); // Victoria
+                    }
+                }
+            });
+
+            // Colisión Jugador-PowerUp
+            currentLevelData.powerUps.forEach((powerUp, index) => {
+                if (checkCollision(player, powerUp)) {
+                    if (powerUp.type === 'score') {
+                        score += 50;
+                    } else if (powerUp.type === 'extraLife') {
+                        lives++;
+                        livesDisplay.textContent = lives;
+                    } else if (powerUp.type === 'fireFlower') {
+                        player.hasFirePower = true;
+                    }
+                    currentLevelData.powerUps.splice(index, 1); // Eliminar power-up
+                    scoreDisplay.textContent = score;
+                }
+            });
+
+            // 4. Lógica del Jefe Final
+            if (boss.active) {
+                // Movimiento del jefe
+                boss.x += boss.speed * boss.dir;
+                if (boss.x > boss.initialX + boss.moveRange || boss.x < boss.initialX - boss.moveRange) {
+                    boss.dir *= -1;
+                }
+
+                // Disparo del jefe
+                boss.shootTimer++;
+                if (boss.shootTimer >= boss.shootInterval) {
+                    gameProjectiles.push({
+                        x: boss.x + boss.width / 2,
+                        y: boss.y + boss.height, // Dispara desde la base del jefe
+                        width: 20,
+                        height: 20,
+                        speed: 7,
+                        dir: (player.x < boss.x) ? -1 : 1, // Dispara hacia el jugador
+                        isEnemyProjectile: true,
+                        isBossProjectile: true
+                    });
+                    boss.shootTimer = 0;
+                }
+            }
+
+
+            // 5. Nivel Completado
+            if (!currentLevelData.isBossLevel && currentLevelData.exit && checkCollision(player, currentLevelData.exit)) {
+                currentLevelIndex++;
+                loadLevel(currentLevelIndex);
+            }
+
+            scoreDisplay.textContent = score;
+        }
+
+        // --- Dibujar Elementos del Juego ---
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar canvas
+
+            // Dibujar fondo
+            if (images[currentLevelData.background]) {
+                ctx.drawImage(images[currentLevelData.background], 0, 0, canvas.width, canvas.height);
+            } else {
+                ctx.fillStyle = '#7fd4e7'; // Color de fallback si la imagen no carga
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Dibujar plataformas
+            currentLevelData.platforms.forEach(platform => {
+                if (!platform.crumbled) { // Solo dibujar si no se ha desmoronado
+                    if (images[platform.img]) {
+                        ctx.drawImage(images[platform.img], platform.x, platform.y, platform.width, platform.height);
+                    } else {
+                        ctx.fillStyle = '#8B4513'; // Color de fallback
+                        ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    }
+                }
+            });
+
+            // Dibujar jugador
+            const playerImage = player.hasFirePower ? images.playerFire : images.player;
+            if (playerImage) {
+                ctx.save();
+                if (player.invincible) {
+                    ctx.globalAlpha = 0.5 + Math.sin(player.invincibilityTimer * 0.5) * 0.2; // Efecto de parpadeo
+                }
+                ctx.drawImage(playerImage, player.x, player.y, player.width, player.height);
+                ctx.restore();
+            } else {
+                ctx.fillStyle = 'blue'; // Color de fallback
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+            }
+
+            // Dibujar enemigos
+            currentLevelData.enemies.forEach(enemy => {
+                if (images[enemy.img]) {
+                    ctx.drawImage(images[enemy.img], enemy.x, enemy.y, enemy.width, enemy.height);
+                } else {
+                    ctx.fillStyle = 'red'; // Color de fallback
+                    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+                }
+            });
+
+            // Dibujar obstáculos
+            currentLevelData.obstacles.forEach(obstacle => {
+                if (images[obstacle.img]) {
+                    ctx.drawImage(images[obstacle.img], obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                } else {
+                    ctx.fillStyle = 'gray'; // Color de fallback
+                    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                }
+            });
+
+            // Dibujar power-ups
+            currentLevelData.powerUps.forEach(powerUp => {
+                if (images[powerUp.img]) {
+                    ctx.drawImage(images[powerUp.img], powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+                } else {
+                    ctx.fillStyle = 'yellow'; // Color de fallback
+                    ctx.fillRect(powerUp.x, powerUp.y, powerUp.width, powerUp.height);
+                }
+            });
+
+            // Dibujar bandera de salida
+            if (!currentLevelData.isBossLevel && currentLevelData.exit && images[currentLevelData.exit.img]) {
+                ctx.drawImage(images[currentLevelData.exit.img], currentLevelData.exit.x, currentLevelData.exit.y, currentLevelData.exit.width, currentLevelData.exit.height);
+            }
+
+            // Dibujar proyectiles del jugador
+            player.projectiles.forEach(p => {
+                if (images.playerFireball) {
+                    ctx.drawImage(images.playerFireball, p.x, p.y, p.width, p.height);
+                } else {
+                    ctx.fillStyle = 'orange';
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                }
+            });
+
+            // Dibujar proyectiles de enemigos/jefe
+            gameProjectiles.forEach(p => {
+                const projImage = p.isBossProjectile ? images.bossProjectile : images.enemyProjectile;
+                if (projImage) {
+                    ctx.drawImage(projImage, p.x, p.y, p.width, p.height);
+                } else {
+                    ctx.fillStyle = 'purple';
+                    ctx.fillRect(p.x, p.y, p.width, p.height);
+                }
+            });
+
+            // Dibujar jefe final
+            if (boss.active && images.boss) {
+                ctx.drawImage(images.boss, boss.x, boss.y, boss.width, boss.height);
+            } else if (boss.active) {
+                ctx.fillStyle = 'darkred'; // Color de fallback
+                ctx.fillRect(boss.x, boss.y, boss.width, boss.height);
+            }
+        }
+
+        // --- Funciones de Utilidad ---
+        function checkCollision(obj1, obj2) {
+            return obj1.x < obj2.x + obj2.width &&
+                obj1.x + obj1.width > obj2.x &&
+                obj1.y < obj2.y + obj2.height &&
+                obj1.y + obj1.height > obj2.y;
+        }
+
+        function updateBossHealthBar() {
+            bossHealthFill.style.width = `${(boss.health / boss.maxHealth) * 100}%`;
+        }
+
+        function showGameOver(isVictory) {
+            gameRunning = false;
+            gameOverScreen.classList.remove('hidden');
+            if (isVictory) {
+                gameOverTitle.textContent = "¡Has Ganado!";
+                gameOverTitle.style.color = '#27ae60';
+            } else {
+                gameOverTitle.textContent = "¡Juego Terminado!";
+                gameOverTitle.style.color = '#e74c3c';
+            }
+            finalScoreDisplay.textContent = score;
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            currentLevelIndex = 0;
+            player.hasFirePower = false; // Reiniciar poder de fuego
+            scoreDisplay.textContent = score;
+            livesDisplay.textContent = lives;
+            loadLevel(currentLevelIndex);
+            gameOverScreen.classList.add('hidden');
+            gameRunning = true;
+            gameLoop();
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'ArrowRight') keys.right = true;
+            if (e.code === 'ArrowLeft') keys.left = true;
+            if (e.code === 'Space') keys.space = true;
+            if (e.code === 'KeyF') keys.fire = true; // 'F' para disparar
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowRight') keys.right = false;
+            if (e.code === 'ArrowLeft') keys.left = false;
+            if (e.code === 'Space') keys.space = false;
+            if (e.code === 'KeyF') keys.fire = false;
+        });
+
+        restartButton.addEventListener('click', resetGame);
+
+        // --- Iniciar el Juego ---
+        function startGame() {
+            loadingScreen.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            loadLevel(currentLevelIndex);
+            gameRunning = true;
+            gameLoop();
+        }
+
+        // Cargar todas las imágenes al inicio
+        for (const name in imageSources) {
+            loadImage(name, imageSources[name]);
+        }
+    </script>
+</body>
+</html>
